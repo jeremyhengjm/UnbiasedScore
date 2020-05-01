@@ -4,14 +4,7 @@
 \alias{coupled2_resampling}
 \title{(2-way) Coupled multinomial resampling using common uniforms random variables}
 \usage{
-coupled2_resampling(
-  normweights1,
-  normweights2,
-  normweights3,
-  normweights4,
-  ndraws,
-  rand
-)
+coupled2_resampling(normweights1, normweights2, ndraws, rand)
 }
 \arguments{
 \item{normweights1}{normalized weights of first particle system}

@@ -6,55 +6,42 @@
 
 using namespace Rcpp;
 
-// rcppeigen_hello_world
-Eigen::MatrixXd rcppeigen_hello_world();
-RcppExport SEXP _UnbiasedGradients_rcppeigen_hello_world() {
+// multinomial_resampling
+IntegerVector multinomial_resampling(const NumericVector& weights, int ndraws, const NumericVector& rand);
+RcppExport SEXP _UnbiasedGradients_multinomial_resampling(SEXP weightsSEXP, SEXP ndrawsSEXP, SEXP randSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(rcppeigen_hello_world());
+    Rcpp::traits::input_parameter< const NumericVector& >::type weights(weightsSEXP);
+    Rcpp::traits::input_parameter< int >::type ndraws(ndrawsSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type rand(randSEXP);
+    rcpp_result_gen = Rcpp::wrap(multinomial_resampling(weights, ndraws, rand));
     return rcpp_result_gen;
 END_RCPP
 }
-// rcppeigen_outerproduct
-Eigen::MatrixXd rcppeigen_outerproduct(const Eigen::VectorXd& x);
-RcppExport SEXP _UnbiasedGradients_rcppeigen_outerproduct(SEXP xSEXP) {
+// maximal_maximal_multinomial_resampling
+IntegerMatrix maximal_maximal_multinomial_resampling(const NumericVector& weights1, const NumericVector& weights2, const NumericVector& weights3, const NumericVector& weights4, int ndraws, int residualtype);
+RcppExport SEXP _UnbiasedGradients_maximal_maximal_multinomial_resampling(SEXP weights1SEXP, SEXP weights2SEXP, SEXP weights3SEXP, SEXP weights4SEXP, SEXP ndrawsSEXP, SEXP residualtypeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcppeigen_outerproduct(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcppeigen_innerproduct
-double rcppeigen_innerproduct(const Eigen::VectorXd& x);
-RcppExport SEXP _UnbiasedGradients_rcppeigen_innerproduct(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcppeigen_innerproduct(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcppeigen_bothproducts
-Rcpp::List rcppeigen_bothproducts(const Eigen::VectorXd& x);
-RcppExport SEXP _UnbiasedGradients_rcppeigen_bothproducts(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcppeigen_bothproducts(x));
+    Rcpp::traits::input_parameter< const NumericVector& >::type weights1(weights1SEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type weights2(weights2SEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type weights3(weights3SEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type weights4(weights4SEXP);
+    Rcpp::traits::input_parameter< int >::type ndraws(ndrawsSEXP);
+    Rcpp::traits::input_parameter< int >::type residualtype(residualtypeSEXP);
+    rcpp_result_gen = Rcpp::wrap(maximal_maximal_multinomial_resampling(weights1, weights2, weights3, weights4, ndraws, residualtype));
     return rcpp_result_gen;
 END_RCPP
 }
 
+RcppExport SEXP _rcpp_module_boot_module_tree();
+
 static const R_CallMethodDef CallEntries[] = {
-    {"_UnbiasedGradients_rcppeigen_hello_world", (DL_FUNC) &_UnbiasedGradients_rcppeigen_hello_world, 0},
-    {"_UnbiasedGradients_rcppeigen_outerproduct", (DL_FUNC) &_UnbiasedGradients_rcppeigen_outerproduct, 1},
-    {"_UnbiasedGradients_rcppeigen_innerproduct", (DL_FUNC) &_UnbiasedGradients_rcppeigen_innerproduct, 1},
-    {"_UnbiasedGradients_rcppeigen_bothproducts", (DL_FUNC) &_UnbiasedGradients_rcppeigen_bothproducts, 1},
+    {"_UnbiasedGradients_multinomial_resampling", (DL_FUNC) &_UnbiasedGradients_multinomial_resampling, 3},
+    {"_UnbiasedGradients_maximal_maximal_multinomial_resampling", (DL_FUNC) &_UnbiasedGradients_maximal_maximal_multinomial_resampling, 6},
+    {"_rcpp_module_boot_module_tree", (DL_FUNC) &_rcpp_module_boot_module_tree, 0},
     {NULL, NULL, 0}
 };
 
