@@ -32,18 +32,11 @@ CPF <- function(model, theta, level, observations, nparticles, ref_trajectory = 
   logweights <- rep(0, nparticles)
   ess <- rep(nparticles, nsteps)
   index_obs <- 0
+  ancestors <- 1:nparticles
+  log_normconst <- rep(0, nsteps)
+  log_ratio_normconst <- 0
   
   for (k in 1:nsteps){
-    # resampling
-    if (obs_times[k]){ # check if obs at previous iteration
-      rand <- runif(nparticles)
-      ancestors <- multinomial_resampling(normweights, nparticles, rand) 
-      xparticles <- xparticles[, ancestors]
-      logweights <- rep(0, nparticles)
-      
-    } else {
-      ancestors <- 1:nparticles
-    }
     
     # propagate under latent dynamics
     randn <- matrix(rnorm(xdimension * nparticles), nrow = xdimension, ncol = nparticles) # size: xdimension x nparticles
@@ -55,6 +48,7 @@ CPF <- function(model, theta, level, observations, nparticles, ref_trajectory = 
     
     # update tree storage
     Tree$update(xparticles, ancestors - 1)    
+    ancestors <- 1:nparticles
     
     if (obs_times[k+1]){
       # compute weights
@@ -65,13 +59,24 @@ CPF <- function(model, theta, level, observations, nparticles, ref_trajectory = 
       weights <- exp(logweights - maxlogweights)
       normweights <- weights / sum(weights)
       ess[k] <- 1 / sum(normweights^2)
+      
+      # compute normalizing constant
+      log_ratio_normconst <- log_ratio_normconst + log(mean(weights)) + maxlogweights  
+      log_normconst[k] <- log_ratio_normconst
+      
+      # resampling
+      if (k < nsteps){
+        rand <- runif(nparticles)
+        ancestors <- multinomial_resampling(normweights, nparticles, rand) 
+        xparticles <- xparticles[, ancestors]
+        logweights <- rep(0, nparticles)
+      }
     }
-    
   }
   
   # draw a trajectory
   ancestor <- multinomial_resampling(normweights, 1, runif(1))
   new_trajectory <- Tree$get_path(ancestor - 1)
-  return(list(new_trajectory = new_trajectory, ess = ess))
+  return(list(new_trajectory = new_trajectory, ess = ess, log_normconst = log_normconst))
   
 }

@@ -97,7 +97,7 @@ hmm_ornstein_uhlenbeck <- function(terminal_time){
     output <- rep(0, theta_dimension)
     for (k in 1:nsteps){
       jacobian <- jacobian_drift(theta, xtrajectory[k])
-      output <- - 0.5 * stepsize * Omega * drift(theta, xtrajectory[k]) * jacobian
+      output <- output - stepsize * Omega * drift(theta, xtrajectory[k]) * jacobian  # JHo: coeff 0.5 removed
       output <- output + Omega * (xtrajectory[k+1] - xtrajectory[k]) * jacobian
     }
     for (p in 1:terminal_time){

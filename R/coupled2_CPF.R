@@ -52,23 +52,10 @@ coupled2_CPF <- function(model, theta, level, observations, nparticles, coupled_
   logweights1 <- rep(0, nparticles)
   logweights2 <- rep(0, nparticles)
   index_obs <- 0
+  ancestors1 <- 1:nparticles
+  ancestors2 <- 1:nparticles
   
   for (k in 1:nsteps){
-    # resampling
-    if (obs_times[k]){ # check if obs at previous iteration
-      rand <- runif(nparticles)
-      ancestors <- coupled_resampling(normweights1, normweights2, nparticles, rand)
-      ancestors1 <- ancestors[, 1]
-      ancestors2 <- ancestors[, 2]
-      xparticles1 <- xparticles1[, ancestors1]
-      xparticles2 <- xparticles2[, ancestors2]
-      logweights1 <- rep(0, nparticles)
-      logweights2 <- rep(0, nparticles)
-      
-    } else {
-      ancestors1 <- 1:nparticles
-      ancestors2 <- 1:nparticles
-    }
     
     # propagate under latent dynamics
     randn <- matrix(rnorm(xdimension * nparticles), nrow = xdimension, ncol = nparticles) # size: xdimension x nparticles
@@ -91,6 +78,8 @@ coupled2_CPF <- function(model, theta, level, observations, nparticles, coupled_
       Tree1$update(xparticles1, ancestors1 - 1)    
       Tree2$update(xparticles2, ancestors2 - 1)    
     }
+    ancestors1 <- 1:nparticles
+    ancestors2 <- 1:nparticles
     
     if (obs_times[k+1]){
       # compute weights
@@ -109,6 +98,18 @@ coupled2_CPF <- function(model, theta, level, observations, nparticles, coupled_
       weights2 <- exp(logweights2 - maxlogweights2)
       normweights1 <- weights1 / sum(weights1)
       normweights2 <- weights2 / sum(weights2)
+      
+      # resampling
+      if (k < nsteps){
+        rand <- runif(nparticles)
+        ancestors <- coupled_resampling(normweights1, normweights2, nparticles, rand)
+        ancestors1 <- ancestors[, 1]
+        ancestors2 <- ancestors[, 2]
+        xparticles1 <- xparticles1[, ancestors1]
+        xparticles2 <- xparticles2[, ancestors2]
+        logweights1 <- rep(0, nparticles)
+        logweights2 <- rep(0, nparticles)
+      }
     }
   }
   

@@ -77,33 +77,12 @@ coupled4_CPF <- function(model, theta, level_fine, observations, nparticles, cou
   logweights_fine1 <- rep(0, nparticles)
   logweights_fine2 <- rep(0, nparticles)
   index_obs <- 0
+  ancestors_coarse1 <- 1:nparticles
+  ancestors_coarse2 <- 1:nparticles
+  ancestors_fine1 <- 1:nparticles
+  ancestors_fine2 <- 1:nparticles
   
   for (k in 1:nsteps){
-    # resampling
-    if (obs_times[k]){ # check if obs at previous iteration
-      rand <- runif(nparticles)
-      ancestors <- coupled_resampling(normweights_coarse1, normweights_coarse2, 
-                                      normweights_fine1, normweights_fine2, 
-                                      nparticles, rand)
-      ancestors_coarse1 <- ancestors[, 1]
-      ancestors_coarse2 <- ancestors[, 2]
-      ancestors_fine1 <- ancestors[, 3]
-      ancestors_fine2 <- ancestors[, 4]
-      xparticles_coarse1 <- xparticles_coarse1[, ancestors_coarse1]
-      xparticles_coarse2 <- xparticles_coarse2[, ancestors_coarse2]
-      xparticles_fine1 <- xparticles_fine1[, ancestors_fine1]
-      xparticles_fine2 <- xparticles_fine2[, ancestors_fine2]
-      logweights_coarse1 <- rep(0, nparticles)
-      logweights_coarse2 <- rep(0, nparticles)
-      logweights_fine1 <- rep(0, nparticles)
-      logweights_fine2 <- rep(0, nparticles)
-      
-    } else {
-      ancestors_coarse1 <- 1:nparticles
-      ancestors_coarse2 <- 1:nparticles
-      ancestors_fine1 <- 1:nparticles
-      ancestors_fine2 <- 1:nparticles
-    }
     
     # propagate under latent dynamics
     randn <- matrix(rnorm(xdimension * nparticles), nrow = xdimension, ncol = nparticles) # size: xdimension x nparticles
@@ -142,6 +121,9 @@ coupled4_CPF <- function(model, theta, level_fine, observations, nparticles, cou
       Tree_fine1$update(xparticles_fine1, ancestors_fine1 - 1) 
       Tree_fine2$update(xparticles_fine2, ancestors_fine2 - 1) 
     }
+    ancestors_fine1 <- 1:nparticles
+    ancestors_fine2 <- 1:nparticles
+    
     if (is.element(k, coarse_times)){
       if (meet_coarse){
         Tree_coarse1$update(xparticles_coarse1, ancestors_coarse1 - 1) 
@@ -149,6 +131,8 @@ coupled4_CPF <- function(model, theta, level_fine, observations, nparticles, cou
         Tree_coarse1$update(xparticles_coarse1, ancestors_coarse1 - 1) 
         Tree_coarse2$update(xparticles_coarse2, ancestors_coarse2 - 1) 
       }
+      ancestors_coarse1 <- 1:nparticles
+      ancestors_coarse2 <- 1:nparticles
     }
     
     if (obs_times[k+1]){
@@ -182,6 +166,28 @@ coupled4_CPF <- function(model, theta, level_fine, observations, nparticles, cou
       weights_coarse2 <- exp(logweights_coarse2 - maxlogweights_coarse2)
       normweights_coarse1 <- weights_coarse1 / sum(weights_coarse1)
       normweights_coarse2 <- weights_coarse2 / sum(weights_coarse2)
+      
+      # resampling
+      if (k < nsteps){
+        rand <- runif(nparticles)
+        ancestors <- coupled_resampling(normweights_coarse1, normweights_coarse2,
+                                        normweights_fine1, normweights_fine2,
+                                        nparticles, rand)
+        ancestors_coarse1 <- ancestors[, 1]
+        ancestors_coarse2 <- ancestors[, 2]
+        ancestors_fine1 <- ancestors[, 3]
+        ancestors_fine2 <- ancestors[, 4]
+        xparticles_coarse1 <- xparticles_coarse1[, ancestors_coarse1]
+        xparticles_coarse2 <- xparticles_coarse2[, ancestors_coarse2]
+        xparticles_fine1 <- xparticles_fine1[, ancestors_fine1]
+        xparticles_fine2 <- xparticles_fine2[, ancestors_fine2]
+        
+        # reset weights
+        logweights_coarse1 <- rep(0, nparticles)
+        logweights_coarse2 <- rep(0, nparticles)
+        logweights_fine1 <- rep(0, nparticles)
+        logweights_fine2 <- rep(0, nparticles)
+      }
     }
   }
   
@@ -194,7 +200,7 @@ coupled4_CPF <- function(model, theta, level_fine, observations, nparticles, cou
   ancestor_coarse2 <- ancestor[, 2]
   ancestor_fine1 <- ancestor[, 3]
   ancestor_fine2 <- ancestor[, 4]
-  
+
   if (meet_coarse){
     new_trajectory_coarse1 <- Tree_coarse1$get_path(ancestor_coarse1 - 1)
     new_trajectory_coarse2 <- new_trajectory_coarse1
