@@ -19,6 +19,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// maximal_rejection_sampling
+IntegerVector maximal_rejection_sampling(const IntegerVector& ancestors1, const NumericVector& weights1, const NumericVector& weights2);
+RcppExport SEXP _UnbiasedGradients_maximal_rejection_sampling(SEXP ancestors1SEXP, SEXP weights1SEXP, SEXP weights2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerVector& >::type ancestors1(ancestors1SEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type weights1(weights1SEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type weights2(weights2SEXP);
+    rcpp_result_gen = Rcpp::wrap(maximal_rejection_sampling(ancestors1, weights1, weights2));
+    return rcpp_result_gen;
+END_RCPP
+}
 // maximal_maximal_multinomial_resampling
 IntegerMatrix maximal_maximal_multinomial_resampling(const NumericVector& weights1, const NumericVector& weights2, const NumericVector& weights3, const NumericVector& weights4, int ndraws, int residualtype);
 RcppExport SEXP _UnbiasedGradients_maximal_maximal_multinomial_resampling(SEXP weights1SEXP, SEXP weights2SEXP, SEXP weights3SEXP, SEXP weights4SEXP, SEXP ndrawsSEXP, SEXP residualtypeSEXP) {
@@ -40,6 +53,7 @@ RcppExport SEXP _rcpp_module_boot_module_tree();
 
 static const R_CallMethodDef CallEntries[] = {
     {"_UnbiasedGradients_multinomial_resampling", (DL_FUNC) &_UnbiasedGradients_multinomial_resampling, 3},
+    {"_UnbiasedGradients_maximal_rejection_sampling", (DL_FUNC) &_UnbiasedGradients_maximal_rejection_sampling, 3},
     {"_UnbiasedGradients_maximal_maximal_multinomial_resampling", (DL_FUNC) &_UnbiasedGradients_maximal_maximal_multinomial_resampling, 6},
     {"_rcpp_module_boot_module_tree", (DL_FUNC) &_rcpp_module_boot_module_tree, 0},
     {NULL, NULL, 0}

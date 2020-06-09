@@ -17,10 +17,10 @@ coupled2_CPF <- function(model, theta, level, observations, nparticles, coupled_
   # get model/problem settings
   statelength <- model$statelength(level)
   nsteps <- statelength - 1 
+  nsteps_interval <- 2^level
   xdimension <- model$xdimension
   ydimension <- model$ydimension
-  obs_times <- model$obstimes(level)
-  
+
   # check if chains have met
   meet <- all(ref_trajectory1 == ref_trajectory2)
   
@@ -81,7 +81,7 @@ coupled2_CPF <- function(model, theta, level, observations, nparticles, coupled_
     ancestors1 <- 1:nparticles
     ancestors2 <- 1:nparticles
     
-    if (obs_times[k+1]){
+    if (k %% nsteps_interval == 0){
       # compute weights
       index_obs <- index_obs + 1 
       observation <- observations[index_obs, ] # 1 x ydimension 

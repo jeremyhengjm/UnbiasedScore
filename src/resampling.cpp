@@ -21,6 +21,55 @@ IntegerVector multinomial_resampling(const NumericVector & weights,
 }
 
 // [[Rcpp::export]]
+IntegerVector maximal_rejection_sampling(const IntegerVector & ancestors1,
+                                         const NumericVector & weights1,
+                                         const NumericVector & weights2){
+  
+  int ndraws = ancestors1.size();
+  int index1, index2;
+  IntegerVector ancestors2(ndraws); // output
+  IntegerVector output_resampling;
+  double loguniform, logacceptprob, logrejectprob;
+  NumericVector uniform(1);
+  bool reject;
+  // double nattempts;
+  
+  for (int n = 0; n < ndraws; n++){
+    index1 = ancestors1(n);
+    loguniform = log(R::runif(0,1)); // this returns a double
+    logacceptprob = log(weights2(index1 - 1)) - log(weights1(index1 - 1)); // note that Cpp index begins from 0 
+    
+    // Attempt to sample from overlap
+    if (loguniform < logacceptprob){
+      index2 = index1;
+    } else {
+      // Rejection sampler for second pair
+      reject = true;
+      // nattempts = 0;
+      while (reject){
+        // nattempts += 1;
+        // Rcpp::Rcout << "Number of attempts:" << std::endl << nattempts << std::endl;
+        // Sample proposal by resampling with weights2
+        uniform = runif(1); // this returns a double
+        output_resampling = multinomial_resampling(weights2, 1, uniform); 
+        index2 = output_resampling(0);
+        logrejectprob = log(weights1(index2 - 1)) - log(weights2(index2 - 1)); // note that Cpp index begins from 0 
+        
+        // accept or reject
+        loguniform = log(R::runif(0,1)); // this returns a double
+        if (loguniform < logrejectprob){
+          reject = true;
+        } else {
+          reject = false;
+        }
+      }
+    }
+    ancestors2(n) = index2;
+  }
+  return ancestors2;
+}
+  
+// [[Rcpp::export]]
 IntegerMatrix maximal_maximal_multinomial_resampling(const NumericVector & weights1,
                                                      const NumericVector & weights2,
                                                      const NumericVector & weights3,
@@ -156,7 +205,7 @@ IntegerMatrix maximal_maximal_multinomial_resampling(const NumericVector & weigh
         cumsum_lower2 = cumsum_residual2(index2 - 2);
       }
       
-      pmf_first += (1.0 - size_first) * ( min(cumsum_upper1, cumsum_upper2) - max(cumsum_lower1, cumsum_lower2) );
+      pmf_first += (1.0 - size_first) * max(min(cumsum_upper1, cumsum_upper2) - max(cumsum_lower1, cumsum_lower2), 0.0);
       
       // Second pair 
       cumsum_upper1 = cumsum_residual3(index1 - 1);
@@ -174,8 +223,10 @@ IntegerMatrix maximal_maximal_multinomial_resampling(const NumericVector & weigh
         cumsum_lower2 = cumsum_residual4(index2 - 2);
       }
       
-      pmf_second += (1.0 - size_second) * ( min(cumsum_upper1, cumsum_upper2) - max(cumsum_lower1, cumsum_lower2) );
+      pmf_second += (1.0 - size_second) * max(min(cumsum_upper1, cumsum_upper2) - max(cumsum_lower1, cumsum_lower2), 0.0);
     }
+    // Rcpp::Rcout << "Joint probability of first pair:" << std::endl << pmf_first << std::endl;
+    // Rcpp::Rcout << "Joint probability of second pair:" << std::endl << pmf_second << std::endl;
     
     // Attempt to sample from overlapping pairs
     loguniform = log(R::runif(0,1)); // this returns a double
@@ -260,7 +311,7 @@ IntegerMatrix maximal_maximal_multinomial_resampling(const NumericVector & weigh
             cumsum_lower2 = cumsum_residual2(index4 - 2);
           }
           
-          pmf_first += (1.0 - size_first) * ( min(cumsum_upper1, cumsum_upper2) - max(cumsum_lower1, cumsum_lower2) );
+          pmf_first += (1.0 - size_first) * max(min(cumsum_upper1, cumsum_upper2) - max(cumsum_lower1, cumsum_lower2), 0.0);
           
           // Second pair 
           cumsum_upper1 = cumsum_residual3(index3 - 1);
@@ -278,7 +329,7 @@ IntegerMatrix maximal_maximal_multinomial_resampling(const NumericVector & weigh
             cumsum_lower2 = cumsum_residual4(index4 - 2);
           }
           
-          pmf_second += (1.0 - size_second) * ( min(cumsum_upper1, cumsum_upper2) - max(cumsum_lower1, cumsum_lower2) );
+          pmf_second += (1.0 - size_second) * max(min(cumsum_upper1, cumsum_upper2) - max(cumsum_lower1, cumsum_lower2), 0.0);
         }
         
         logrejectprob = log(pmf_first) - log(pmf_second);

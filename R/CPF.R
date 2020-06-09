@@ -15,10 +15,10 @@ CPF <- function(model, theta, level, observations, nparticles, ref_trajectory = 
   # get model/problem settings 
   statelength <- model$statelength(level)
   nsteps <- statelength - 1 
+  nsteps_interval <- 2^level
   xdimension <- model$xdimension
   ydimension <- model$ydimension
-  obs_times <- model$obstimes(level)
-  
+
   # create tree representation of the trajectories
   Tree <- new(TreeClass, nparticles, 10*nparticles*xdimension, xdimension)
   
@@ -50,7 +50,7 @@ CPF <- function(model, theta, level, observations, nparticles, ref_trajectory = 
     Tree$update(xparticles, ancestors - 1)    
     ancestors <- 1:nparticles
     
-    if (obs_times[k+1]){
+    if (k %% nsteps_interval == 0){      
       # compute weights
       index_obs <- index_obs + 1 
       observation <- observations[index_obs, ] # 1 x ydimension 

@@ -19,12 +19,11 @@ coupled4_CPF <- function(model, theta, level_fine, observations, nparticles, cou
   
   # get model/problem settings 
   statelength_fine <- model$statelength(level_fine)
-  nsteps <- statelength_fine - 1 
-  coarse_times <- seq(2, nsteps, by = 2)
+  nsteps <- statelength_fine - 1
+  nsteps_interval <- 2^level_fine
   xdimension <- model$xdimension
   ydimension <- model$ydimension
-  obs_times <- model$obstimes(level_fine)
-  
+
   # check if trajectories are equal
   meet_coarse <- all(ref_trajectory_coarse1 == ref_trajectory_coarse2)
   meet_fine <- all(ref_trajectory_fine1 == ref_trajectory_fine2)
@@ -98,7 +97,7 @@ coupled4_CPF <- function(model, theta, level_fine, observations, nparticles, cou
     ancestors_fine1[nparticles] <- nparticles
     ancestors_fine2[nparticles] <- nparticles
     
-    if (is.element(k, coarse_times)){
+    if (k %% 2 == 0){
       combined_randn <- (previous_randn + randn) / sqrt(2) 
       if (meet_coarse){
         xparticles_coarse1 <- model$rtransition(theta, level_fine-1, xparticles_coarse1, combined_randn) # size: xdimension x nparticles
@@ -124,7 +123,7 @@ coupled4_CPF <- function(model, theta, level_fine, observations, nparticles, cou
     ancestors_fine1 <- 1:nparticles
     ancestors_fine2 <- 1:nparticles
     
-    if (is.element(k, coarse_times)){
+    if (k %% 2 == 0){
       if (meet_coarse){
         Tree_coarse1$update(xparticles_coarse1, ancestors_coarse1 - 1) 
       } else {
@@ -135,7 +134,7 @@ coupled4_CPF <- function(model, theta, level_fine, observations, nparticles, cou
       ancestors_coarse2 <- 1:nparticles
     }
     
-    if (obs_times[k+1]){
+    if (k %% nsteps_interval == 0){
       # compute weights
       index_obs <- index_obs + 1
       observation <- observations[index_obs, ] # 1 x ydimension 
