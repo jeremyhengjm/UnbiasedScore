@@ -3,7 +3,7 @@
 #' @description Estimates the expectation of a functional with respect to the smoothing distribution at a discretization level
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
-#' @param level time discretization level
+#' @param discretization list containing stepsize, nsteps, statelength and obstimes
 #' @param observations a matrix of observations of size terminal_time x ydimension
 #' @param nparticles number of particles
 #' @param coupled_resampling a 2-way coupled resampling scheme, such as \code{\link{coupled2_maximal_coupled_residuals}}
@@ -17,15 +17,15 @@
 #' iteration is the number of iterations taken
 #' finished indicates if the algorithm has completed successfully
 #' @export
-unbiased_gradient <- function(model, theta, level, observations, nparticles, coupled_resampling, 
+unbiased_gradient <- function(model, theta, discretization, observations, nparticles, coupled_resampling, 
                               k = 0, m = 1, max_iterations = Inf){
   
   # initialize chains
-  chain_state1 <- CPF(model, theta, level, observations, nparticles, ref_trajectory = NULL)$new_trajectory
-  chain_state2 <- CPF(model, theta, level, observations, nparticles, ref_trajectory = NULL)$new_trajectory
+  chain_state1 <- CPF(model, theta, discretization, observations, nparticles, ref_trajectory = NULL)$new_trajectory
+  chain_state2 <- CPF(model, theta, discretization, observations, nparticles, ref_trajectory = NULL)$new_trajectory
   
   # initialize estimators computation
-  mcmcestimator <- model$functional(theta, level, chain_state1, observations)
+  mcmcestimator <- model$functional(theta, discretization, chain_state1, observations)
   theta_dimension <- model$theta_dimension
   if (k > 0){
     mcmcestimator <- rep(0, theta_dimension)
@@ -33,14 +33,14 @@ unbiased_gradient <- function(model, theta, level, observations, nparticles, cou
   
   # correction computes the sum of min(1, (t - k + 1) / (m - k + 1)) * (h(X_{t+1}) - h(X_t)) for t=k,...,max(m, tau - 1)
   correction <- rep(0, theta_dimension)
-  chain_state1 <- CPF(model, theta, level, observations, nparticles, chain_state1)$new_trajectory
+  chain_state1 <- CPF(model, theta, discretization, observations, nparticles, chain_state1)$new_trajectory
   if (k == 0){
     correction <- correction + (min(1, (0 - k + 1)/(m - k + 1))) * 
-      (model$functional(theta, level, chain_state1, observations) - 
-         model$functional(theta, level, chain_state2, observations))
+      (model$functional(theta, discretization, chain_state1, observations) - 
+         model$functional(theta, discretization, chain_state2, observations))
   }
   if (k <= 1 && m >= 1){
-    mcmcestimator <- mcmcestimator + model$functional(theta, level, chain_state1, observations)
+    mcmcestimator <- mcmcestimator + model$functional(theta, discretization, chain_state1, observations)
   }
   
   # initialize
@@ -55,7 +55,7 @@ unbiased_gradient <- function(model, theta, level, observations, nparticles, cou
     iter <- iter + 1
     
     # sample from 2-way coupled CPF kernel
-    coupled2CPF <- coupled2_CPF(model, theta, level, observations, nparticles, coupled_resampling, 
+    coupled2CPF <- coupled2_CPF(model, theta, discretization, observations, nparticles, coupled_resampling, 
                                 chain_state1, chain_state2)
     chain_state1 <- coupled2CPF$new_trajectory1
     chain_state2 <- coupled2CPF$new_trajectory2
@@ -63,16 +63,16 @@ unbiased_gradient <- function(model, theta, level, observations, nparticles, cou
     # update gradient estimators
     if (meet){
       if (k <= iter && iter <= m){
-        mcmcestimator <- mcmcestimator + model$functional(theta, level, chain_state1, observations)
+        mcmcestimator <- mcmcestimator + model$functional(theta, discretization, chain_state1, observations)
       }
     } else {
       if (k <= iter){
         if (iter <= m){
-          mcmcestimator <- mcmcestimator + model$functional(theta, level, chain_state1, observations)
+          mcmcestimator <- mcmcestimator + model$functional(theta, discretization, chain_state1, observations)
         }
         correction <- correction + (min(1, (iter-1 - k + 1)/(m - k + 1))) * 
-          (model$functional(theta, level, chain_state1, observations) - 
-             model$functional(theta, level, chain_state2, observations))
+          (model$functional(theta, discretization, chain_state1, observations) - 
+             model$functional(theta, discretization, chain_state2, observations))
       }
     }
     
@@ -100,12 +100,13 @@ unbiased_gradient <- function(model, theta, level, observations, nparticles, cou
 }
 
 #' @rdname unbiased_gradient_increment
-#' @title Unbiased estimator of the difference of the gradient of log-likelihood at two discretization levels
+#' @title Unbiased estimator of the difference of the gradient of log-likelihood at two successive discretization levels
 #' @description Estimates the difference of the expectation of a functional with respect to the smoothing distribution at two discretization levels
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
-#' @param level time discretization level
-#' @param observations a matrix of observations of size terminal_time x ydimension
+#' @param discretization lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
+#' and coarsetimes of length statelength_fine indexing time steps of coarse level
+#' @param observations a matrix of observations of size nobservations x ydimension
 #' @param nparticles number of particles
 #' @param coupled_resampling a 4-way coupled resampling scheme, such as \code{\link{coupled4_maximal_coupled_residuals}}
 #' @param k iteration at which to start averaging (default to 0)
@@ -123,19 +124,18 @@ unbiased_gradient <- function(model, theta, level, observations, nparticles, cou
 #' iteration is the number of iterations taken
 #' finished indicates if the algorithm has completed successfully
 #' @export
-unbiased_gradient_increment <- function(model, theta, level, observations, nparticles, coupled_resampling, 
+unbiased_gradient_increment <- function(model, theta, discretization, observations, nparticles, coupled_resampling, 
                                         k = 0, m = 1, max_iterations = Inf){
   
   # initialize chains
-  chain_state_coarse1 <- CPF(model, theta, level-1, observations, nparticles, ref_trajectory = NULL)$new_trajectory
-  chain_state_coarse2 <- CPF(model, theta, level-1, observations, nparticles, ref_trajectory = NULL)$new_trajectory
-  chain_state_fine1 <- CPF(model, theta, level, observations, nparticles, ref_trajectory = NULL)$new_trajectory
-  chain_state_fine2 <- CPF(model, theta, level, observations, nparticles, ref_trajectory = NULL)$new_trajectory
-  
+  chain_state_coarse1 <- CPF(model, theta, discretization$coarse, observations, nparticles, ref_trajectory = NULL)$new_trajectory
+  chain_state_coarse2 <- CPF(model, theta, discretization$coarse, observations, nparticles, ref_trajectory = NULL)$new_trajectory
+  chain_state_fine1 <- CPF(model, theta, discretization$fine, observations, nparticles, ref_trajectory = NULL)$new_trajectory
+  chain_state_fine2 <- CPF(model, theta, discretization$fine, observations, nparticles, ref_trajectory = NULL)$new_trajectory
   
   # initialize coarse and fine estimators computation
-  mcmcestimator_coarse <- model$functional(theta, level-1, chain_state_coarse1, observations)
-  mcmcestimator_fine <- model$functional(theta, level, chain_state_fine1, observations)
+  mcmcestimator_coarse <- model$functional(theta, discretization$coarse, chain_state_coarse1, observations)
+  mcmcestimator_fine <- model$functional(theta, discretization$fine, chain_state_fine1, observations)
   theta_dimension <- model$theta_dimension
   if (k > 0){
     mcmcestimator_coarse <- rep(0, theta_dimension)
@@ -145,19 +145,19 @@ unbiased_gradient_increment <- function(model, theta, level, observations, npart
   # correction computes the sum of min(1, (t - k + 1) / (m - k + 1)) * (h(X_{t+1}) - h(X_t)) for t=k,...,max(m, tau - 1)
   correction_coarse <- rep(0, theta_dimension)
   correction_fine <- rep(0, theta_dimension)
-  chain_state_coarse1 <- CPF(model, theta, level-1, observations, nparticles, chain_state_coarse1)$new_trajectory
-  chain_state_fine1 <- CPF(model, theta, level, observations, nparticles, chain_state_fine1)$new_trajectory
+  chain_state_coarse1 <- CPF(model, theta, discretization$coarse, observations, nparticles, chain_state_coarse1)$new_trajectory
+  chain_state_fine1 <- CPF(model, theta, discretization$fine, observations, nparticles, chain_state_fine1)$new_trajectory
   if (k == 0){
     correction_coarse <- correction_coarse + (min(1, (0 - k + 1)/(m - k + 1))) *
-      (model$functional(theta, level-1, chain_state_coarse1, observations) - 
-         model$functional(theta, level-1, chain_state_coarse2, observations))
+      (model$functional(theta, discretization$coarse, chain_state_coarse1, observations) - 
+         model$functional(theta, discretization$coarse, chain_state_coarse2, observations))
     correction_fine <- correction_fine + (min(1, (0 - k + 1)/(m - k + 1))) * 
-      (model$functional(theta, level, chain_state_fine1, observations) - 
-         model$functional(theta, level, chain_state_fine2, observations))
+      (model$functional(theta, discretization$fine, chain_state_fine1, observations) - 
+         model$functional(theta, discretization$fine, chain_state_fine2, observations))
   }
   if (k <= 1 && m >= 1){
-    mcmcestimator_coarse <- mcmcestimator_coarse + model$functional(theta, level-1, chain_state_coarse1, observations)
-    mcmcestimator_fine <- mcmcestimator_fine + model$functional(theta, level, chain_state_fine1, observations)
+    mcmcestimator_coarse <- mcmcestimator_coarse + model$functional(theta, discretization$coarse, chain_state_coarse1, observations)
+    mcmcestimator_fine <- mcmcestimator_fine + model$functional(theta, discretization$fine, chain_state_fine1, observations)
   }
   
   # initialize
@@ -174,7 +174,7 @@ unbiased_gradient_increment <- function(model, theta, level, observations, npart
     iter <- iter + 1
     
     # sample from 4-way coupled CPF kernel
-    coupled4CPF <- coupled4_CPF(model, theta, level, observations, nparticles, coupled_resampling,
+    coupled4CPF <- coupled4_CPF(model, theta, discretization, observations, nparticles, coupled_resampling,
                                 chain_state_coarse1, chain_state_coarse2,
                                 chain_state_fine1, chain_state_fine2)
     chain_state_coarse1 <- coupled4CPF$new_trajectory_coarse1
@@ -185,32 +185,32 @@ unbiased_gradient_increment <- function(model, theta, level, observations, npart
     # update gradient estimators for coarse discretization level
     if (meet_coarse){
       if (k <= iter && iter <= m){
-        mcmcestimator_coarse <- mcmcestimator_coarse + model$functional(theta, level-1, chain_state_coarse1, observations)
+        mcmcestimator_coarse <- mcmcestimator_coarse + model$functional(theta, discretization$coarse, chain_state_coarse1, observations)
       }
     } else {
       if (k <= iter){
         if (iter <= m){
-          mcmcestimator_coarse <- mcmcestimator_coarse + model$functional(theta, level-1, chain_state_coarse1, observations)
+          mcmcestimator_coarse <- mcmcestimator_coarse + model$functional(theta, discretization$coarse, chain_state_coarse1, observations)
         }
         correction_coarse <- correction_coarse + (min(1, (iter-1 - k + 1)/(m - k + 1))) * 
-          (model$functional(theta, level-1, chain_state_coarse1, observations) - 
-             model$functional(theta, level-1, chain_state_coarse2, observations))
+          (model$functional(theta, discretization$coarse, chain_state_coarse1, observations) - 
+             model$functional(theta, discretization$coarse, chain_state_coarse2, observations))
       }
     }
     
     # update gradient estimators for fine discretization level
     if (meet_fine){
       if (k <= iter && iter <= m){
-        mcmcestimator_fine <- mcmcestimator_fine + model$functional(theta, level, chain_state_fine1, observations)
+        mcmcestimator_fine <- mcmcestimator_fine + model$functional(theta, discretization$fine, chain_state_fine1, observations)
       }
     } else {
       if (k <= iter){
         if (iter <= m){
-          mcmcestimator_fine <- mcmcestimator_fine + model$functional(theta, level, chain_state_fine1, observations)
+          mcmcestimator_fine <- mcmcestimator_fine + model$functional(theta, discretization$fine, chain_state_fine1, observations)
         }
         correction_fine <- correction_fine + (min(1, (iter-1 - k + 1)/(m - k + 1))) * 
-          (model$functional(theta, level, chain_state_fine1, observations) - 
-             model$functional(theta, level, chain_state_fine2, observations))
+          (model$functional(theta, discretization$fine, chain_state_fine1, observations) - 
+             model$functional(theta, discretization$fine, chain_state_fine2, observations))
       }
     }
     
