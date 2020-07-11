@@ -4,21 +4,32 @@
 \alias{CPF}
 \title{Conditional Particle Filter}
 \usage{
-CPF(model, theta, level, observations, nparticles, ref_trajectory = NULL)
+CPF(
+  model,
+  theta,
+  discretization,
+  observations,
+  nparticles,
+  ref_trajectory = NULL,
+  treestorage = FALSE
+)
 }
 \arguments{
 \item{model}{a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}}
 
 \item{theta}{a vector of parameters as input to model functions}
 
-\item{level}{level of the time discretization}
+\item{discretization}{list containing stepsize, nsteps, statelength and obstimes}
 
-\item{observations}{a matrix of observations of size terminal_time x ydimension}
+\item{observations}{a matrix of observations, of size nobservations x ydimension}
 
 \item{nparticles}{number of particles}
 
 \item{ref_trajectory}{a matrix of reference trajectory, of size xdimension x statelength; 
 if missing, this function runs a standard particle filter}
+
+\item{treestorage}{logical specifying tree storage of Jacob, Murray and Rubenthaler (2013); 
+if missing, this function store all states and ancestors}
 }
 \value{
 a matrix containing a new trajectory of size xdimension x statelength

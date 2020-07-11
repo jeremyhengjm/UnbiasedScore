@@ -7,12 +7,13 @@
 coupled2_CPF(
   model,
   theta,
-  level,
+  discretization,
   observations,
   nparticles,
   coupled_resampling,
   ref_trajectory1,
-  ref_trajectory2
+  ref_trajectory2,
+  treestorage = FALSE
 )
 }
 \arguments{
@@ -20,9 +21,9 @@ coupled2_CPF(
 
 \item{theta}{a vector of parameters as input to model functions}
 
-\item{level}{level of the time discretization}
+\item{discretization}{list containing stepsize, nsteps, statelength and obstimes}
 
-\item{observations}{a matrix of observations of size terminal_time x ydimension}
+\item{observations}{a matrix of observations, of size nobservations x ydimension}
 
 \item{nparticles}{number of particles}
 
@@ -31,6 +32,9 @@ coupled2_CPF(
 \item{ref_trajectory1}{a matrix of first reference trajectory, of size xdimension x statelength}
 
 \item{ref_trajectory2}{a matrix of second reference trajectory, of size xdimension x statelength}
+
+\item{treestorage}{logical specifying tree storage of Jacob, Murray and Rubenthaler (2013);
+if missing, this function store all states and ancestors}
 }
 \value{
 a pair of new trajectories stored as matrices of size xdimension x statelength

@@ -2,19 +2,20 @@
 % Please edit documentation in R/coupled4_CPF.R
 \name{coupled4_CPF}
 \alias{coupled4_CPF}
-\title{4-wayCoupled Coupled Conditional Particle Filter}
+\title{4-way Coupled Coupled Conditional Particle Filter}
 \usage{
 coupled4_CPF(
   model,
   theta,
-  level_fine,
+  discretization,
   observations,
   nparticles,
   coupled_resampling,
   ref_trajectory_coarse1,
   ref_trajectory_coarse2,
   ref_trajectory_fine1,
-  ref_trajectory_fine2
+  ref_trajectory_fine2,
+  treestorage = FALSE
 )
 }
 \arguments{
@@ -22,9 +23,10 @@ coupled4_CPF(
 
 \item{theta}{a vector of parameters as input to model functions}
 
-\item{level_fine}{level of the finer time discretization}
+\item{discretization}{lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
+and coarsetimes of length statelength_fine indexing time steps of coarse level}
 
-\item{observations}{a matrix of observations of size terminal_time x ydimension}
+\item{observations}{a matrix of observations, of size nobservations x ydimension}
 
 \item{nparticles}{number of particles}
 
@@ -37,6 +39,9 @@ coupled4_CPF(
 \item{ref_trajectory_fine1}{a matrix of first reference trajectory for finer discretization level, of size xdimension x statelength_fine}
 
 \item{ref_trajectory_fine2}{a matrix of second reference trajectory for finer discretization level, of size xdimension x statelength_fine}
+
+\item{treestorage}{logical specifying tree storage of Jacob, Murray and Rubenthaler (2013);
+if missing, this function store all states and ancestors}
 }
 \value{
 four new trajectories stored as matrices of size xdimension x statelength_coarse/fine

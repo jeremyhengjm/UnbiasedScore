@@ -2,26 +2,26 @@
 % Please edit documentation in R/coupled4_resampling.R
 \name{coupled4_maximalchains_maximallevels_coupled_residuals}
 \alias{coupled4_maximalchains_maximallevels_coupled_residuals}
-\title{(4-way) coupled multinomial resampling by maximally coupling chains and maximally coupling
-across levels with coupled residuals using common uniform random variables}
+\title{(4-way) coupled multinomial resampling by maximally coupling pairs of chains on each level 
+and maximally coupling across levels with coupled residuals using common uniform random variables}
 \usage{
 coupled4_maximalchains_maximallevels_coupled_residuals(
-  normweights1,
-  normweights2,
-  normweights3,
-  normweights4,
+  normweights_coarse1,
+  normweights_coarse2,
+  normweights_fine1,
+  normweights_fine2,
   ndraws,
   rand
 )
 }
 \arguments{
-\item{normweights1}{normalized weights of first particle system}
+\item{normweights_coarse1}{normalized weights of first particle system on coarse level}
 
-\item{normweights2}{normalized weights of second particle system}
+\item{normweights_coarse2}{normalized weights of second particle system on coarse level}
 
-\item{normweights3}{normalized weights of third particle system}
+\item{normweights_fine1}{normalized weights of first particle system on fine level}
 
-\item{normweights4}{normalized weights of fourth particle system}
+\item{normweights_fine2}{normalized weights of second particle system on fine level}
 
 \item{ndraws}{number of samples from multinomial distribution}
 
@@ -31,6 +31,6 @@ coupled4_maximalchains_maximallevels_coupled_residuals(
 A matrix of ancestor indexes of size ndraws x 4
 }
 \description{
-This function performs (4-way) coupled multinomial resampling by maximally coupling chains and 
-maximally coupling across levels with coupled residuals using common uniform random variables on each particle system
+This function performs (4-way) coupled multinomial resampling by maximally coupling pairs of chains  
+and maximally coupling across levels with coupled residuals using common uniform random variables on each particle system
 }

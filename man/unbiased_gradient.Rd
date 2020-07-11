@@ -7,7 +7,7 @@
 unbiased_gradient(
   model,
   theta,
-  level,
+  discretization,
   observations,
   nparticles,
   coupled_resampling,
@@ -21,7 +21,7 @@ unbiased_gradient(
 
 \item{theta}{a vector of parameters as input to model functions}
 
-\item{level}{time discretization level}
+\item{discretization}{list containing stepsize, nsteps, statelength and obstimes}
 
 \item{observations}{a matrix of observations of size terminal_time x ydimension}
 

@@ -2,12 +2,12 @@
 % Please edit documentation in R/unbiased_estimators.R
 \name{unbiased_gradient_increment}
 \alias{unbiased_gradient_increment}
-\title{Unbiased estimator of the difference of the gradient of log-likelihood at two discretization levels}
+\title{Unbiased estimator of the difference of the gradient of log-likelihood at two successive discretization levels}
 \usage{
 unbiased_gradient_increment(
   model,
   theta,
-  level,
+  discretization,
   observations,
   nparticles,
   coupled_resampling,
@@ -21,9 +21,10 @@ unbiased_gradient_increment(
 
 \item{theta}{a vector of parameters as input to model functions}
 
-\item{level}{time discretization level}
+\item{discretization}{lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
+and coarsetimes of length statelength_fine indexing time steps of coarse level}
 
-\item{observations}{a matrix of observations of size terminal_time x ydimension}
+\item{observations}{a matrix of observations of size nobservations x ydimension}
 
 \item{nparticles}{number of particles}
 
