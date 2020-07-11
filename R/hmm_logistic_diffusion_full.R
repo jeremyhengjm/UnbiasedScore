@@ -1,7 +1,6 @@
-#' @rdname hmm_logistic_diffusion
-#' @title Construct hidden markov model obtained by discretizing logistic diffusion process
+#' @rdname hmm_logistic_diffusion_full
+#' @title Construct hidden markov model obtained by discretizing Lamperti transformed logistic diffusion process
 #' @param times vector specifying observation times
-#' @param sigma0 diffusivity parameter
 #' @description This function returns a list with objects such as
 #' * xdimension is the dimension of the latent process
 #' * ydimension is the dimension of the observation process
@@ -17,13 +16,13 @@
 #' * functional is the smoothing function to compute gradient of log-likelihood 
 #' @return A list 
 #' @export
-hmm_logistic_diffusion <- function(times, sigma0){
+hmm_logistic_diffusion_full <- function(times){
   # model dimensions
   xdimension <- 1
   ydimension <- 2
   
   # parameters of the model
-  theta_dimension <- 3 # not inferring diffusivity parameter
+  theta_dimension <- 4 # inferring diffusivity parameter
   
   # time intervals
   time_intervals <- diff(times)
@@ -114,23 +113,26 @@ hmm_logistic_diffusion <- function(times, sigma0){
     }
     statelength_coarse <- nsteps_coarse + 1
     coarse <- list(stepsize = all_stepsizes_coarse, nsteps = nsteps_coarse, 
-                 statelength = statelength_coarse, obstimes = obstimes_coarse)
+                   statelength = statelength_coarse, obstimes = obstimes_coarse)
     
     return(list(fine = fine, coarse = coarse, coarsetimes = coarsetimes))
   }
   
   # drift 
-  drift <- function(theta, x) (sigma0^2 / 2 + theta[1] - theta[2] * x) * x
-  jacobian_drift <- function(theta, x) c(x, -x^2, 0)
+  drift <- function(theta, x) theta[1] / theta[3] - theta[2] * exp(theta[3] * x) / theta[3]
+  jacobian_drift <- function(theta, x) c(1 / theta[3], 
+                                         - exp(theta[3] * x) / theta[3], 
+                                         - theta[1] / theta[3]^2 - theta[2] * exp(theta[3] * x) * (theta[3] * x - 1) / theta[3]^2, 
+                                         0)
   
   # diffusivity 
-  sigma <- function(x) sigma0 * x
-  Sigma <- function(x) sigma(x)^2
-  Omega <- function(x) sigma0^(-2) * x^(-2)
+  sigma <- 1
+  Sigma <- 1
+  Omega <- 1
   
   # sample from initial distribution
   rinit <- function(nparticles){
-    return(matrix(rlnorm(nparticles, meanlog = 5, sdlog = 10), nrow = 1)) # returns 1 x N
+    return(matrix(rnorm(nparticles, mean = 5, sd = 10) / theta[3], nrow = 1)) # returns 1 x N
   }
   
   # sample from Markov transition kernel
@@ -141,7 +143,7 @@ hmm_logistic_diffusion <- function(times, sigma0){
     # rand is a vector of size N following a standard normal distribution
     # output new particles in a vector of size N
     
-    return(xparticles + stepsize * drift(theta, xparticles) + sigma(xparticles) * sqrt(stepsize) *  rand) 
+    return(xparticles + stepsize * drift(theta, xparticles) + sigma * sqrt(stepsize) *  rand) 
   }
   
   # evaluate Markov transition density 
@@ -150,16 +152,15 @@ hmm_logistic_diffusion <- function(times, sigma0){
     # xparticles and next_xparticles are vectors of size N
     
     particle_mean <- xparticles + stepsize * drift(theta, xparticles) 
-    return(dnorm(next_xparticles, mean = particle_mean, sd = sigma(xparticles) * sqrt(stepsize), log = TRUE))
+    return(dnorm(next_xparticles, mean = particle_mean, sd = sigma * sqrt(stepsize), log = TRUE))
   }
   
   dmeasurement <- function(theta, xparticles, observation){
     # xparticles is a vector of size N
     # theta is a vector of size 3
     # observation is a vector of size 2 
-    obsdensity <- dnbinom(observation[1], size = theta[3], mu = xparticles, log = TRUE) + 
-      dnbinom(observation[2], size = theta[3], mu = xparticles, log = TRUE)
-    
+    obsdensity <- dnbinom(observation[1], size = theta[4], mu = exp(theta[3] * xparticles), log = TRUE) + 
+      dnbinom(observation[2], size = theta[4], mu = exp(theta[3] * xparticles), log = TRUE)
     return(obsdensity)
   }
   
@@ -168,11 +169,17 @@ hmm_logistic_diffusion <- function(times, sigma0){
     # theta is a vector of size 3
     # xstate is a number 
     # observation is a vector of size 2
-    partial_derivative <- digamma(observation[1] + theta[3]) + digamma(observation[2] + theta[3]) + 
-      - 2 * digamma(theta[3]) + 2 * (log(theta[3]) - log(theta[3] + xstate)) + 
-      2 * (1 - theta[3] / (theta[3] + xstate)) - (observation[1] + observation[2]) / (theta[3] + xstate)
     
-    return(c(0, 0, partial_derivative))
+    exp_theta3_xstate <- exp(theta[3] * xstate)
+    
+    partial_derivative_theta3 <- - 2 * theta[4] * xstate * exp_theta3_xstate / (theta[4] + exp_theta3_xstate) + 
+      (observation[1] + observation[2]) * xstate * (1 - exp_theta3_xstate /  (theta[4] + exp_theta3_xstate))
+    
+    partial_derivative_theta4 <- digamma(observation[1] + theta[4]) + digamma(observation[2] + theta[4]) - 
+      2 * digamma(theta[4]) + 2 * (log(theta[4]) - log(theta[4] + exp_theta3_xstate)) + 
+      2 * (1 - theta[4] / (theta[4] + exp_theta3_xstate)) - (observation[1] + observation[2]) / (theta[4] + exp_theta3_xstate)
+    
+    return(c(0, 0, partial_derivative_theta3, partial_derivative_theta4))
   }
   
   functional <- function(theta, discretization, xtrajectory, observations){
@@ -196,8 +203,8 @@ hmm_logistic_diffusion <- function(times, sigma0){
     # loop over time 
     for (k in 1:nsteps){
       jacobian <- jacobian_drift(theta, xtrajectory[k])
-      output <- output - stepsize[k] * Omega(xtrajectory[k]) * drift(theta, xtrajectory[k]) * jacobian  
-      output <- output + Omega(xtrajectory[k]) * (xtrajectory[k+1] - xtrajectory[k]) * jacobian
+      output <- output - stepsize[k] * Omega * drift(theta, xtrajectory[k]) * jacobian  
+      output <- output + Omega * (xtrajectory[k+1] - xtrajectory[k]) * jacobian
       
       # observation time
       if (obstimes[k+1]){
