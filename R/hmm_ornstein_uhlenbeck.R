@@ -1,19 +1,19 @@
 #' @rdname hmm_ornstein_uhlenbeck
 #' @title Construct hidden markov model obtained by discretizing Ornstein-Uhlenbeck process
-#' @param nobservations number of observations or time interval of interest
+#' @param times observation times
 #' @description This function returns a list with objects such as
-#' * xdimension is the dimension of the latent process
-#' * ydimension is the dimension of the observation process
-#' * theta_dimension is the dimension of the parameter space
-#' * construct_discretization outputs a list containing stepsize, nsteps, statelength and obstimes
+#' * xdimension is the dimension of the latent process, 
+#' * ydimension is the dimension of the observation process, 
+#' * theta_dimension is the dimension of the parameter space, 
+#' * construct_discretization outputs a list containing stepsize, nsteps, statelength and obstimes,
 #' * construct_successive_discretization outputs lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
-#' and coarsetimes of length statelength_fine indexing time steps of coarse level
-#' * sigma is the diffusion coefficient of the process
-#' * rinit to sample from the initial distribution
-#' * rtransition to sample from the Markov transition
-#' * dtransition to evaluate the transition density
-#' * dmeasurement to evaluate the measurement density
-#' * functional is the smoothing function to compute gradient of log-likelihood 
+#' and coarsetimes of length statelength_fine indexing time steps of coarse level, 
+#' * sigma is the diffusion coefficient of the process, 
+#' * rinit to sample from the initial distribution, 
+#' * rtransition to sample from the Markov transition, 
+#' * dtransition to evaluate the transition density, 
+#' * dmeasurement to evaluate the measurement density,
+#' * functional is the smoothing function to compute gradient of log-likelihood.
 #' @return A list 
 #' @export
 hmm_ornstein_uhlenbeck <- function(times){
@@ -26,16 +26,17 @@ hmm_ornstein_uhlenbeck <- function(times){
   
   # time intervals
   nobservations <- length(times) # nobservations at unit times
-  nintervals <- nobservations - 1 
   
   # construct discretization
   construct_discretization <- function(level){
     stepsize <- 2^(-level)
-    nsteps <- nintervals * 2^level
+    nsteps <- nobservations * 2^level
     all_stepsizes <- rep(stepsize, nsteps)
     statelength <- nsteps + 1
     obstimes <- rep(FALSE, statelength)
-    obs_index <- seq(1, statelength, by = 2^level)
+    # No observation at first time step for deterministic initialization
+    obs_index <- seq(2^level+1, statelength, by = 2^level)
+    # obs_index <- seq(1, statelength, by = 2^level)
     obstimes[obs_index] <- TRUE
     
     return(list(stepsize = all_stepsizes, nsteps = nsteps, 
@@ -68,13 +69,16 @@ hmm_ornstein_uhlenbeck <- function(times){
   Omega <- sigma^(-2)
   
   # sample from initial distribution
+  x_star <- 0 # deterministic init
   rinit <- function(nparticles){
-    return(matrix(rnorm(nparticles, mean = 0, sd = 1), nrow = 1)) # returns 1 x N
+    #return(matrix(rnorm(nparticles, mean = 0, sd = 1), nrow = 1)) # returns 1 x N
+    return(matrix(x_star, nrow = xdimension, ncol = nparticles))
   }
   
   # sample from Markov transition kernel
   rtransition <- function(theta, stepsize, xparticles, rand){ 
     # theta is a vector of size 3
+    # stepsize is the time discretization step size 
     # xparticles is a vector of size N
     # should take xparticles of size 1 x N and output new particles of size 1 x N
     # rand is a vector of size N following a standard normal distribution
@@ -86,6 +90,7 @@ hmm_ornstein_uhlenbeck <- function(times){
   # evaluate Markov transition density 
   dtransition <- function(theta, stepsize, xparticles, next_xparticles){
     # theta is a vector of size 3
+    # stepsize is the time discretization step size 
     # xparticles and next_xparticles are vectors of size N
     
     particle_mean <- xparticles + stepsize * drift(theta, xparticles) 
@@ -93,16 +98,18 @@ hmm_ornstein_uhlenbeck <- function(times){
   }
   
   # evaluate observation density
-  dmeasurement <- function(theta, xparticles, observation){
-    # xparticles is a vector of size N
+  dmeasurement <- function(theta, stepsize, xparticles, observation){
     # theta is a vector of size 3
+    # stepsize is the time discretization step size 
+    # xparticles is a vector of size N
     # observation is a number
     return(dnorm(observation, mean = xparticles, sd = sqrt(theta[3]), log = TRUE))
   }
   
   # evaluate gradient of log-observation density
-  gradient_dmeasurement <- function(theta, xstate, observation){
+  gradient_dmeasurement <- function(theta, stepsize, xstate, observation){
     # theta is a vector of size 3
+    # stepsize is the time discretization step size 
     # xstate is a number 
     # observation is a number
     partial_derivative_variance <- - 1 / (2 * theta[3]) + (observation - xstate)^2 / (2 * theta[3]^2)
@@ -117,15 +124,13 @@ hmm_ornstein_uhlenbeck <- function(times){
     
     # discretization objects
     stepsize <- discretization$stepsize # vector of length nsteps
-    nsteps <- discretization$nsteps 
+    nsteps <- discretization$nsteps
     statelength <- discretization$statelength  
     obstimes <- discretization$obstimes # vector of length statelength = nsteps + 1
     
     # initialize 
     output <- rep(0, theta_dimension)
-    index_obs <- 1
-    xstate <- xtrajectory[1]
-    output <- output + gradient_dmeasurement(theta, xstate, observations[index_obs, ])
+    index_obs <- 0 
     
     # loop over time 
     for (k in 1:nsteps){
@@ -137,12 +142,143 @@ hmm_ornstein_uhlenbeck <- function(times){
       if (obstimes[k+1]){
         index_obs <- index_obs + 1
         xstate <- xtrajectory[k+1]
-        output <- output + gradient_dmeasurement(theta, xstate, observations[index_obs, ])
+        output <- output + gradient_dmeasurement(theta, stepsize, xstate, observations[index_obs, ])
       }
     }
     
     return(output)
   }
+  
+  smoothing_moments <- function(theta, observations){
+    # theta is a vector of size 3
+    # observations is a matrix of size nobservations x 1
+    # Remark: Assumes constant step size and N(0,1) initial distribution
+    
+    discretization <- construct_discretization(0)
+    # Time steps
+    stepsize <- discretization$stepsize
+    if (abs(max(stepsize) - min(stepsize)) < .Machine$double.eps){
+      # step size constant
+      delta = discretization$stepsize[1]
+    } else {
+      stop("Step size must be constant for smoothing_moments")
+    }
+    
+    ## Compute smoothing distribution via the Kalman filter ##
+    
+    # theta-dependent quantities
+    e1 <- exp(- delta * theta[1])
+    var_dyn <- sigma ** 2 * (1 - exp(- 2 * delta * theta[1])) / (2 * theta[1])
+    var_obs <- theta[3]
+    
+    # Build prior mean and variance jointly for all time steps
+    prior_mean <- matrix(0, nrow = nobservations, ncol=1)
+    prior_var <- matrix(0, nrow = nobservations, ncol=nobservations)
+    
+    for (k in 1:nobservations){
+      
+      if (k == 1){
+        m_prev <- x_star
+        P_prev <- 0
+      } else {
+        m_prev <- prior_mean[k-1]
+        P_prev <- prior_var[k-1, k-1]
+      }
+      
+      prior_mean[k] <- theta[2] + (m_prev - theta[2]) * e1
+      prior_var[k, k] <- P_prev * e1 ** 2 + var_dyn
+      
+      #if (k == 1){
+      #  # Initial distribution
+      #  prior_mean[k] <- x_star
+      #  prior_var[k, k] <- 0
+      #} else {
+      #  # Predicted marginal mean and variance
+      #  prior_mean[k] <- theta[2] + (prior_mean[k-1] - theta[2]) * e1
+      #  prior_var[k, k] <- prior_var[k-1, k-1] * e1 ** 2 + var_dyn
+      
+      # Correlations between time steps
+      for (l in (k+1):nobservations){
+        if (l > nobservations) break
+        prior_var[k, l] <- e1 ** (l-k) * prior_var[k, k]
+        prior_var[l, k] <- prior_var[k, l]
+      }
+      #}
+    }
+    
+    # Observation matrix
+    H <- diag(nobservations)
+    
+    # Apply one Kalman filter step with all observations at once
+    innov <- observations - H %*% prior_mean
+    cov_innov <- H %*% prior_var %*% t(H) + var_obs * diag(nobservations)
+    gain <- prior_var %*% t(H) %*% solve(cov_innov)
+    post_mean <- prior_mean + gain %*% innov
+    post_var <- (diag(nobservations) - gain %*% H) %*% prior_var
+    
+    return(list(post_mean=post_mean, post_var=post_var, prior_mean=prior_mean))
+  }
+  
+  
+  compute_gradients <- function(theta, observations){
+    # theta is a vector of size 3
+    # observations is a matrix of size nobservations x 1
+    # Remark: Assumes constant step size and N(0,1) initial distribution
+    
+    discretization <- construct_discretization(0)
+    # Time steps
+    stepsize <- discretization$stepsize
+    if (abs(max(stepsize) - min(stepsize)) < .Machine$double.eps){
+      # step size constant
+      delta = discretization$stepsize[1]
+    } else {
+      stop("Step size must be constant for smoothing_moments")
+    }
+    
+    e1 <- exp(- delta * theta[1])
+    var_dyn <- sigma ** 2 * (1 - exp(- 2 * delta * theta[1])) / (2 * theta[1])
+    
+    # \nabla_{\theta} \Sigma_{\theta} / \Sigma_{\theta}
+    dlogS = ((2 * delta * theta[1] + 1) * exp(- 2 * delta * theta[1]) - 1) / ( theta[1] * (1 - exp(- 2 * delta * theta[1])) )
+    c1 = dlogS / (2 * var_dyn)
+    
+    # Constants of different polynomial terms in the 1st component of \nabla_{\theta} \log p_{\theta}
+    c1x2 = c1
+    c1xxp = -(delta / var_dyn + 2 * c1) * e1
+    c1xp2 = (delta / var_dyn + c1) * e1**2
+    c1x = (-2 * c1 * (1 - e1) + delta * e1 / var_dyn) * theta[2]
+    c1xp =  (delta * (1 - e1) / var_dyn - delta * e1 / var_dyn + 2 * c1 * (1 - e1)) * e1 * theta[2]
+    c1c = c1 * theta[2]**2 * (1 - e1)**2 - (1 - e1) * delta * e1 * theta[2]**2 / var_dyn
+    
+    moments <- smoothing_moments(theta, observations)
+    
+    grad <- matrix(0, nrow = nobservations, ncol=3)
+    for (k in 1:nobservations){
+      if (k == 1){
+        Exp <- x_star # Expectation x'
+        Vxp <- 0      # Variance x'
+        Vxxp <- 0     # Correlation x and x'
+      } else {
+        Exp <- moments$post_mean[k-1]
+        Vxp <- moments$post_var[k-1, k-1]
+        Vxxp <- moments$post_var[k-1, k]
+      }
+      
+      # Second moment
+      Exp2 <- Vxp + Exp**2
+      Ex <- moments$post_mean[k]
+      Ex2 <- moments$post_var[k, k] + Ex**2
+      Exxp <- Vxxp + Ex * Exp
+      
+      grad[k, 1] <- c1x2 * Ex2 + c1xxp * Exxp + c1xp2 * Exp2 + c1x * Ex + c1xp * Exp + c1c - dlogS / 2
+      grad[k, 2] <- (1 - e1) * (Ex - e1 * Exp + (e1 - 1) * theta[2]) / var_dyn
+      grad[k, 3] <- (Ex2 - 2 * observations[k] * Ex + observations[k]**2) / (2 * theta[3]**2) - 1 / (2 * theta[3])
+    }
+    
+    gradient <- colSums(grad)
+    return(gradient)
+  }
+  
   
   model <- list(xdimension = xdimension,
                 ydimension = ydimension,
@@ -154,7 +290,9 @@ hmm_ornstein_uhlenbeck <- function(times){
                 rtransition = rtransition, 
                 dtransition = dtransition, 
                 dmeasurement = dmeasurement,
-                functional = functional)
+                functional = functional,
+                smoothing_moments = smoothing_moments,
+                compute_gradients = compute_gradients)
   return(model)
   
 }

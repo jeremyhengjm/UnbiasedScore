@@ -10,6 +10,7 @@ coupled2_CPF(
   discretization,
   observations,
   nparticles,
+  resampling_threshold = 1,
   coupled_resampling,
   ref_trajectory1,
   ref_trajectory2,
@@ -26,6 +27,8 @@ coupled2_CPF(
 \item{observations}{a matrix of observations, of size nobservations x ydimension}
 
 \item{nparticles}{number of particles}
+
+\item{resampling_threshold}{ESS proportion below which resampling is triggered (always resample at observation times by default)}
 
 \item{coupled_resampling}{a 2-way coupled resampling scheme, such as \code{\link{coupled2_maximal_coupled_residuals}}}
 

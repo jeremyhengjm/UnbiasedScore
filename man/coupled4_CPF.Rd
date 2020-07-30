@@ -10,6 +10,7 @@ coupled4_CPF(
   discretization,
   observations,
   nparticles,
+  resampling_threshold,
   coupled_resampling,
   ref_trajectory_coarse1,
   ref_trajectory_coarse2,
@@ -29,6 +30,8 @@ and coarsetimes of length statelength_fine indexing time steps of coarse level}
 \item{observations}{a matrix of observations, of size nobservations x ydimension}
 
 \item{nparticles}{number of particles}
+
+\item{resampling_threshold}{ESS proportion below which resampling is triggered (always resample at observation times by default)}
 
 \item{coupled_resampling}{a 4-way coupled resampling scheme, such as \code{\link{coupled4_maximal_coupled_residuals}}}
 

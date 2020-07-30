@@ -6,6 +6,7 @@
 #' @param discretization list containing stepsize, nsteps, statelength and obstimes
 #' @param observations a matrix of observations, of size nobservations x ydimension
 #' @param nparticles number of particles
+#' @param resampling_threshold ESS proportion below which resampling is triggered (always resample at observation times by default)
 #' @param coupled_resampling a 2-way coupled resampling scheme, such as \code{\link{coupled2_maximal_coupled_residuals}}
 #' @param ref_trajectory1 a matrix of first reference trajectory, of size xdimension x statelength
 #' @param ref_trajectory2 a matrix of second reference trajectory, of size xdimension x statelength
@@ -13,7 +14,7 @@
 #' if missing, this function store all states and ancestors
 #' @return a pair of new trajectories stored as matrices of size xdimension x statelength
 #' @export
-coupled2_CPF <- function(model, theta, discretization, observations, nparticles, coupled_resampling, 
+coupled2_CPF <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1, coupled_resampling, 
                          ref_trajectory1, ref_trajectory2, treestorage = FALSE){
   
   # get model/problem settings 
@@ -72,33 +73,46 @@ coupled2_CPF <- function(model, theta, discretization, observations, nparticles,
       xtrajectory2[1, , ] <- xparticles2
     }
   }
-  
-  # compute weights
-  index_obs <- 1 
-  observation <- observations[index_obs, ] # 1 x ydimension 
-  if (meet){
-    logweights1 <- model$dmeasurement(theta, xparticles1, observation)
-    logweights2 <- logweights1
-  } else {
-    logweights1 <- model$dmeasurement(theta, xparticles1, observation)
-    logweights2 <- model$dmeasurement(theta, xparticles2, observation)
-  }
-  maxlogweights1 <- max(logweights1)
-  maxlogweights2 <- max(logweights2)
-  weights1 <- exp(logweights1 - maxlogweights1)
-  weights2 <- exp(logweights2 - maxlogweights2)
-  normweights1 <- weights1 / sum(weights1)
-  normweights2 <- weights2 / sum(weights2)
-  
-  # resampling
-  rand <- runif(nparticles)
-  ancestors <- coupled_resampling(normweights1, normweights2, nparticles, rand)
-  ancestors1 <- ancestors[, 1]
-  ancestors2 <- ancestors[, 2]
-  xparticles1 <- xparticles1[, ancestors1]
-  xparticles2 <- xparticles2[, ancestors2]
   logweights1 <- rep(0, nparticles)
   logweights2 <- rep(0, nparticles)
+  index_obs <- 0
+  ancestors1 <- 1:nparticles
+  ancestors2 <- 1:nparticles
+  
+  # random initialization
+  if (obstimes[1]){
+    # compute weights
+    index_obs <- index_obs + 1
+    observation <- observations[index_obs, ] # 1 x ydimension 
+    if (meet){
+      logweights1 <- model$dmeasurement(theta, stepsize[1], xparticles1, observation)
+      logweights2 <- logweights1
+    } else {
+      logweights1 <- model$dmeasurement(theta, stepsize[1], xparticles1, observation)
+      logweights2 <- model$dmeasurement(theta, stepsize[1], xparticles2, observation)
+    }
+    maxlogweights1 <- max(logweights1)
+    maxlogweights2 <- max(logweights2)
+    weights1 <- exp(logweights1 - maxlogweights1)
+    weights2 <- exp(logweights2 - maxlogweights2)
+    normweights1 <- weights1 / sum(weights1)
+    normweights2 <- weights2 / sum(weights2)
+    ess1 <- 1 / sum(normweights1^2)
+    ess2 <- 1 / sum(normweights2^2)
+    
+    # resampling
+    if (min(ess1, ess2) < resampling_threshold * nparticles){
+      rand <- runif(nparticles)
+      ancestors <- coupled_resampling(normweights1, normweights2, nparticles, rand)
+      ancestors1 <- ancestors[, 1]
+      ancestors2 <- ancestors[, 2]
+      xparticles1 <- xparticles1[, ancestors1]
+      xparticles2 <- xparticles2[, ancestors2]
+      logweights1 <- rep(0, nparticles)
+      logweights2 <- rep(0, nparticles)
+    }
+  }
+  
   
   for (k in 1:nsteps){
     
@@ -143,11 +157,11 @@ coupled2_CPF <- function(model, theta, discretization, observations, nparticles,
       index_obs <- index_obs + 1 
       observation <- observations[index_obs, ] # 1 x ydimension 
       if (meet){
-        logweights1 <- logweights1 + model$dmeasurement(theta, xparticles1, observation)
+        logweights1 <- logweights1 + model$dmeasurement(theta, stepsize[k], xparticles1, observation)
         logweights2 <- logweights1
       } else {
-        logweights1 <- logweights1 + model$dmeasurement(theta, xparticles1, observation)
-        logweights2 <- logweights2 + model$dmeasurement(theta, xparticles2, observation)
+        logweights1 <- logweights1 + model$dmeasurement(theta, stepsize[k], xparticles1, observation)
+        logweights2 <- logweights2 + model$dmeasurement(theta, stepsize[k], xparticles2, observation)
       }
       maxlogweights1 <- max(logweights1)
       maxlogweights2 <- max(logweights2)
@@ -155,9 +169,11 @@ coupled2_CPF <- function(model, theta, discretization, observations, nparticles,
       weights2 <- exp(logweights2 - maxlogweights2)
       normweights1 <- weights1 / sum(weights1)
       normweights2 <- weights2 / sum(weights2)
+      ess1 <- 1 / sum(normweights1^2)
+      ess2 <- 1 / sum(normweights2^2)
       
       # resampling
-      if (k < nsteps){
+      if (k < nsteps && min(ess1, ess2) < resampling_threshold * nparticles){
         rand <- runif(nparticles)
         ancestors <- coupled_resampling(normweights1, normweights2, nparticles, rand)
         ancestors1 <- ancestors[, 1]

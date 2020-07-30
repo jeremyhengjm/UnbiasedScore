@@ -7,6 +7,7 @@
 #' and coarsetimes of length statelength_fine indexing time steps of coarse level
 #' @param observations a matrix of observations, of size nobservations x ydimension
 #' @param nparticles number of particles
+#' @param resampling_threshold ESS proportion below which resampling is triggered (always resample at observation times by default)
 #' @param coupled_resampling a 4-way coupled resampling scheme, such as \code{\link{coupled4_maximal_coupled_residuals}}
 #' @param ref_trajectory_coarse1 a matrix of first reference trajectory for coarser discretization level, of size xdimension x statelength_coarse
 #' @param ref_trajectory_coarse2 a matrix of second reference trajectory for coarser discretization level, of size xdimension x statelength_coarse
@@ -16,7 +17,7 @@
 #' if missing, this function store all states and ancestors
 #' @return four new trajectories stored as matrices of size xdimension x statelength_coarse/fine
 #' @export
-coupled4_CPF <- function(model, theta, discretization, observations, nparticles, coupled_resampling,
+coupled4_CPF <- function(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling,
                          ref_trajectory_coarse1, ref_trajectory_coarse2,
                          ref_trajectory_fine1, ref_trajectory_fine2, treestorage = FALSE){
   
@@ -119,57 +120,76 @@ coupled4_CPF <- function(model, theta, discretization, observations, nparticles,
       xtrajectory_fine2[1, , ] <- xparticles_fine2
     }
   }
-  
-  # compute weights
-  index_obs <- 1
-  observation <- observations[index_obs, ] # 1 x ydimension 
-  if (meet_fine){
-    logweights_fine1 <- model$dmeasurement(theta, xparticles_fine1, observation)
-    logweights_fine2 <- logweights_fine1
-  } else {
-    logweights_fine1 <- model$dmeasurement(theta, xparticles_fine1, observation)
-    logweights_fine2 <- model$dmeasurement(theta, xparticles_fine2, observation)
-  }
-  maxlogweights_fine1 <- max(logweights_fine1)
-  maxlogweights_fine2 <- max(logweights_fine2)
-  weights_fine1 <- exp(logweights_fine1 - maxlogweights_fine1)
-  weights_fine2 <- exp(logweights_fine2 - maxlogweights_fine2)
-  normweights_fine1 <- weights_fine1 / sum(weights_fine1)
-  normweights_fine2 <- weights_fine2 / sum(weights_fine2)
-  
-  if (meet_coarse){
-    logweights_coarse1 <- model$dmeasurement(theta, xparticles_coarse1, observation)
-    logweights_coarse2 <- logweights_coarse1
-  } else {
-    logweights_coarse1 <- model$dmeasurement(theta, xparticles_coarse1, observation)
-    logweights_coarse2 <- model$dmeasurement(theta, xparticles_coarse2, observation)
-  }
-  maxlogweights_coarse1 <- max(logweights_coarse1)
-  maxlogweights_coarse2 <- max(logweights_coarse2)
-  weights_coarse1 <- exp(logweights_coarse1 - maxlogweights_coarse1)
-  weights_coarse2 <- exp(logweights_coarse2 - maxlogweights_coarse2)
-  normweights_coarse1 <- weights_coarse1 / sum(weights_coarse1)
-  normweights_coarse2 <- weights_coarse2 / sum(weights_coarse2)
-  
-  # resampling
-  rand <- runif(nparticles)
-  ancestors <- coupled_resampling(normweights_coarse1, normweights_coarse2,
-                                  normweights_fine1, normweights_fine2,
-                                  nparticles, rand)
-  ancestors_coarse1 <- ancestors[, 1]
-  ancestors_coarse2 <- ancestors[, 2]
-  ancestors_fine1 <- ancestors[, 3]
-  ancestors_fine2 <- ancestors[, 4]
-  xparticles_coarse1 <- xparticles_coarse1[, ancestors_coarse1]
-  xparticles_coarse2 <- xparticles_coarse2[, ancestors_coarse2]
-  xparticles_fine1 <- xparticles_fine1[, ancestors_fine1]
-  xparticles_fine2 <- xparticles_fine2[, ancestors_fine2]
-  
-  # reset weights
   logweights_coarse1 <- rep(0, nparticles)
   logweights_coarse2 <- rep(0, nparticles)
   logweights_fine1 <- rep(0, nparticles)
   logweights_fine2 <- rep(0, nparticles)
+  index_obs <- 0 
+  ancestors_coarse1 <- 1:nparticles
+  ancestors_coarse2 <- 1:nparticles
+  ancestors_fine1 <- 1:nparticles
+  ancestors_fine2 <- 1:nparticles
+  
+  # random initialization
+  if (obstimes[1]){
+    # compute weights
+    index_obs <- index_obs + 1
+    observation <- observations[index_obs, ] # 1 x ydimension 
+    if (meet_fine){
+      logweights_fine1 <- model$dmeasurement(theta, stepsize_fine[1], xparticles_fine1, observation)
+      logweights_fine2 <- logweights_fine1
+    } else {
+      logweights_fine1 <- model$dmeasurement(theta, stepsize_fine[1], xparticles_fine1, observation)
+      logweights_fine2 <- model$dmeasurement(theta, stepsize_fine[1], xparticles_fine2, observation)
+    }
+    maxlogweights_fine1 <- max(logweights_fine1)
+    maxlogweights_fine2 <- max(logweights_fine2)
+    weights_fine1 <- exp(logweights_fine1 - maxlogweights_fine1)
+    weights_fine2 <- exp(logweights_fine2 - maxlogweights_fine2)
+    normweights_fine1 <- weights_fine1 / sum(weights_fine1)
+    normweights_fine2 <- weights_fine2 / sum(weights_fine2)
+    ess_fine1 <- 1 / sum(normweights_fine1^2)
+    ess_fine2 <- 1 / sum(normweights_fine2^2)
+    
+    if (meet_coarse){
+      logweights_coarse1 <- model$dmeasurement(theta, stepsize_coarse[1], xparticles_coarse1, observation)
+      logweights_coarse2 <- logweights_coarse1
+    } else {
+      logweights_coarse1 <- model$dmeasurement(theta, stepsize_coarse[1], xparticles_coarse1, observation)
+      logweights_coarse2 <- model$dmeasurement(theta, stepsize_coarse[1], xparticles_coarse2, observation)
+    }
+    maxlogweights_coarse1 <- max(logweights_coarse1)
+    maxlogweights_coarse2 <- max(logweights_coarse2)
+    weights_coarse1 <- exp(logweights_coarse1 - maxlogweights_coarse1)
+    weights_coarse2 <- exp(logweights_coarse2 - maxlogweights_coarse2)
+    normweights_coarse1 <- weights_coarse1 / sum(weights_coarse1)
+    normweights_coarse2 <- weights_coarse2 / sum(weights_coarse2)
+    ess_coarse1 <- 1 / sum(normweights_coarse1^2)
+    ess_coarse2 <- 1 / sum(normweights_coarse2^2)
+    
+    # resampling
+    min_ess <- min(ess_fine1, ess_fine2, ess_coarse1, ess_coarse2)
+    if (min_ess < resampling_threshold * nparticles){
+      rand <- runif(nparticles)
+      ancestors <- coupled_resampling(normweights_coarse1, normweights_coarse2,
+                                      normweights_fine1, normweights_fine2,
+                                      nparticles, rand)
+      ancestors_coarse1 <- ancestors[, 1]
+      ancestors_coarse2 <- ancestors[, 2]
+      ancestors_fine1 <- ancestors[, 3]
+      ancestors_fine2 <- ancestors[, 4]
+      xparticles_coarse1 <- xparticles_coarse1[, ancestors_coarse1]
+      xparticles_coarse2 <- xparticles_coarse2[, ancestors_coarse2]
+      xparticles_fine1 <- xparticles_fine1[, ancestors_fine1]
+      xparticles_fine2 <- xparticles_fine2[, ancestors_fine2]
+      
+      # reset weights
+      logweights_coarse1 <- rep(0, nparticles)
+      logweights_coarse2 <- rep(0, nparticles)
+      logweights_fine1 <- rep(0, nparticles)
+      logweights_fine2 <- rep(0, nparticles)
+    }
+  }
   
   index_coarse <- 0 # index coarse times
   for (k in 1:nsteps){
@@ -264,11 +284,11 @@ coupled4_CPF <- function(model, theta, discretization, observations, nparticles,
       index_obs <- index_obs + 1
       observation <- observations[index_obs, ] # 1 x ydimension 
       if (meet_fine){
-        logweights_fine1 <- logweights_fine1 + model$dmeasurement(theta, xparticles_fine1, observation)
+        logweights_fine1 <- logweights_fine1 + model$dmeasurement(theta, stepsize_fine[k], xparticles_fine1, observation)
         logweights_fine2 <- logweights_fine1
       } else {
-        logweights_fine1 <- logweights_fine1 + model$dmeasurement(theta, xparticles_fine1, observation)
-        logweights_fine2 <- logweights_fine2 + model$dmeasurement(theta, xparticles_fine2, observation)
+        logweights_fine1 <- logweights_fine1 + model$dmeasurement(theta, stepsize_fine[k], xparticles_fine1, observation)
+        logweights_fine2 <- logweights_fine2 + model$dmeasurement(theta, stepsize_fine[k], xparticles_fine2, observation)
       }
       maxlogweights_fine1 <- max(logweights_fine1)
       maxlogweights_fine2 <- max(logweights_fine2)
@@ -276,13 +296,15 @@ coupled4_CPF <- function(model, theta, discretization, observations, nparticles,
       weights_fine2 <- exp(logweights_fine2 - maxlogweights_fine2)
       normweights_fine1 <- weights_fine1 / sum(weights_fine1)
       normweights_fine2 <- weights_fine2 / sum(weights_fine2)
+      ess_fine1 <- 1 / sum(normweights_fine1^2)
+      ess_fine2 <- 1 / sum(normweights_fine2^2)
       
       if (meet_coarse){
-        logweights_coarse1 <- logweights_coarse1 + model$dmeasurement(theta, xparticles_coarse1, observation)
+        logweights_coarse1 <- logweights_coarse1 + model$dmeasurement(theta, stepsize_coarse[index_coarse], xparticles_coarse1, observation)
         logweights_coarse2 <- logweights_coarse1
       } else {
-        logweights_coarse1 <- logweights_coarse1 + model$dmeasurement(theta, xparticles_coarse1, observation)
-        logweights_coarse2 <- logweights_coarse2 + model$dmeasurement(theta, xparticles_coarse2, observation)
+        logweights_coarse1 <- logweights_coarse1 + model$dmeasurement(theta, stepsize_coarse[index_coarse], xparticles_coarse1, observation)
+        logweights_coarse2 <- logweights_coarse2 + model$dmeasurement(theta, stepsize_coarse[index_coarse], xparticles_coarse2, observation)
       }
       maxlogweights_coarse1 <- max(logweights_coarse1)
       maxlogweights_coarse2 <- max(logweights_coarse2)
@@ -290,9 +312,12 @@ coupled4_CPF <- function(model, theta, discretization, observations, nparticles,
       weights_coarse2 <- exp(logweights_coarse2 - maxlogweights_coarse2)
       normweights_coarse1 <- weights_coarse1 / sum(weights_coarse1)
       normweights_coarse2 <- weights_coarse2 / sum(weights_coarse2)
+      ess_coarse1 <- 1 / sum(normweights_coarse1^2)
+      ess_coarse2 <- 1 / sum(normweights_coarse2^2)
       
       # resampling
-      if (k < nsteps){
+      min_ess <- min(ess_fine1, ess_fine2, ess_coarse1, ess_coarse2)
+      if (k < nsteps && min_ess < resampling_threshold * nparticles){
         rand <- runif(nparticles)
         ancestors <- coupled_resampling(normweights_coarse1, normweights_coarse2,
                                         normweights_fine1, normweights_fine2,

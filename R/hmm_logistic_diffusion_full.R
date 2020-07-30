@@ -131,13 +131,25 @@ hmm_logistic_diffusion_full <- function(times){
   Omega <- 1
   
   # sample from initial distribution
+  init_mean <- 5
+  init_sd <- 10
   rinit <- function(nparticles){
-    return(matrix(rnorm(nparticles, mean = 5, sd = 10) / theta[3], nrow = 1)) # returns 1 x N
+    return(matrix(rnorm(nparticles, mean = init_mean, sd = init_sd) / theta[3], nrow = 1)) # returns 1 x N
+  }
+  
+  gradient_init <- function(theta, xstate){
+    # theta is a vector of size 3
+    # xstate is a number 
+    partial_derivative_theta3 <- 1 / theta[3] - theta[3] * (xstate - init_mean / theta[3])^2 / init_sd^2 - 
+      init_mean * (xstate - init_mean / theta[3]) / init_sd^2
+    
+    return(c(0, 0, partial_derivative_theta3, 0))
   }
   
   # sample from Markov transition kernel
   rtransition <- function(theta, stepsize, xparticles, rand){ 
     # theta is a vector of size 3
+    # stepsize is the time discretization step size 
     # xparticles is a vector of size N
     # should take xparticles of size 1 x N and output new particles of size 1 x N
     # rand is a vector of size N following a standard normal distribution
@@ -149,24 +161,28 @@ hmm_logistic_diffusion_full <- function(times){
   # evaluate Markov transition density 
   dtransition <- function(theta, stepsize, xparticles, next_xparticles){
     # theta is a vector of size 3
+    # stepsize is the time discretization step size 
     # xparticles and next_xparticles are vectors of size N
     
     particle_mean <- xparticles + stepsize * drift(theta, xparticles) 
     return(dnorm(next_xparticles, mean = particle_mean, sd = sigma * sqrt(stepsize), log = TRUE))
   }
   
-  dmeasurement <- function(theta, xparticles, observation){
-    # xparticles is a vector of size N
+  dmeasurement <- function(theta, stepsize, xparticles, observation){
     # theta is a vector of size 3
+    # stepsize is the time discretization step size 
+    # xparticles is a vector of size N
     # observation is a vector of size 2 
+    
     obsdensity <- dnbinom(observation[1], size = theta[4], mu = exp(theta[3] * xparticles), log = TRUE) + 
       dnbinom(observation[2], size = theta[4], mu = exp(theta[3] * xparticles), log = TRUE)
     return(obsdensity)
   }
   
   # evaluate gradient of log-observation density
-  gradient_dmeasurement <- function(theta, xstate, observation){
+  gradient_dmeasurement <- function(theta, stepsize, xstate, observation){
     # theta is a vector of size 3
+    # stepsize is the time discretization step size 
     # xstate is a number 
     # observation is a vector of size 2
     
@@ -198,7 +214,8 @@ hmm_logistic_diffusion_full <- function(times){
     output <- rep(0, theta_dimension)
     index_obs <- 1
     xstate <- xtrajectory[1]
-    output <- output + gradient_dmeasurement(theta, xstate, observations[index_obs, ])
+    output <- output + gradient_init(theta, xstate)
+    output <- output + gradient_dmeasurement(theta, stepsize, xstate, observations[index_obs, ])
     
     # loop over time 
     for (k in 1:nsteps){
@@ -210,7 +227,7 @@ hmm_logistic_diffusion_full <- function(times){
       if (obstimes[k+1]){
         index_obs <- index_obs + 1
         xstate <- xtrajectory[k+1]
-        output <- output + gradient_dmeasurement(theta, xstate, observations[index_obs, ])
+        output <- output + gradient_dmeasurement(theta, stepsize, xstate, observations[index_obs, ])
       }
     }
     return(output)

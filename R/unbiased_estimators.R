@@ -6,6 +6,7 @@
 #' @param discretization list containing stepsize, nsteps, statelength and obstimes
 #' @param observations a matrix of observations of size terminal_time x ydimension
 #' @param nparticles number of particles
+#' @param resampling_threshold ESS proportion below which resampling is triggered (always resample at observation times by default)
 #' @param coupled_resampling a 2-way coupled resampling scheme, such as \code{\link{coupled2_maximal_coupled_residuals}}
 #' @param k iteration at which to start averaging (default to 0)
 #' @param m iteration at which to stop averaging (default to 1)
@@ -17,12 +18,12 @@
 #' iteration is the number of iterations taken
 #' finished indicates if the algorithm has completed successfully
 #' @export
-unbiased_gradient <- function(model, theta, discretization, observations, nparticles, coupled_resampling, 
+unbiased_gradient <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1, coupled_resampling, 
                               k = 0, m = 1, max_iterations = Inf){
   
   # initialize chains
-  chain_state1 <- CPF(model, theta, discretization, observations, nparticles, ref_trajectory = NULL)$new_trajectory
-  chain_state2 <- CPF(model, theta, discretization, observations, nparticles, ref_trajectory = NULL)$new_trajectory
+  chain_state1 <- CPF(model, theta, discretization, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
+  chain_state2 <- CPF(model, theta, discretization, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
   
   # initialize estimators computation
   mcmcestimator <- model$functional(theta, discretization, chain_state1, observations)
@@ -33,7 +34,7 @@ unbiased_gradient <- function(model, theta, discretization, observations, nparti
   
   # correction computes the sum of min(1, (t - k + 1) / (m - k + 1)) * (h(X_{t+1}) - h(X_t)) for t=k,...,max(m, tau - 1)
   correction <- rep(0, theta_dimension)
-  chain_state1 <- CPF(model, theta, discretization, observations, nparticles, chain_state1)$new_trajectory
+  chain_state1 <- CPF(model, theta, discretization, observations, nparticles, resampling_threshold, chain_state1)$new_trajectory
   if (k == 0){
     correction <- correction + (min(1, (0 - k + 1)/(m - k + 1))) * 
       (model$functional(theta, discretization, chain_state1, observations) - 
@@ -53,9 +54,10 @@ unbiased_gradient <- function(model, theta, discretization, observations, nparti
   while (!finished && iter < max_iterations){
     # increment counter
     iter <- iter + 1
+    cat(iter, "\n")
     
     # sample from 2-way coupled CPF kernel
-    coupled2CPF <- coupled2_CPF(model, theta, discretization, observations, nparticles, coupled_resampling, 
+    coupled2CPF <- coupled2_CPF(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling, 
                                 chain_state1, chain_state2)
     chain_state1 <- coupled2CPF$new_trajectory1
     chain_state2 <- coupled2CPF$new_trajectory2
@@ -108,6 +110,7 @@ unbiased_gradient <- function(model, theta, discretization, observations, nparti
 #' and coarsetimes of length statelength_fine indexing time steps of coarse level
 #' @param observations a matrix of observations of size nobservations x ydimension
 #' @param nparticles number of particles
+#' @param resampling_threshold ESS proportion below which resampling is triggered (always resample at observation times by default)
 #' @param coupled_resampling a 4-way coupled resampling scheme, such as \code{\link{coupled4_maximal_coupled_residuals}}
 #' @param k iteration at which to start averaging (default to 0)
 #' @param m iteration at which to stop averaging (default to 1)
@@ -124,14 +127,14 @@ unbiased_gradient <- function(model, theta, discretization, observations, nparti
 #' iteration is the number of iterations taken
 #' finished indicates if the algorithm has completed successfully
 #' @export
-unbiased_gradient_increment <- function(model, theta, discretization, observations, nparticles, coupled_resampling, 
+unbiased_gradient_increment <- function(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling, 
                                         k = 0, m = 1, max_iterations = Inf){
   
   # initialize chains
-  chain_state_coarse1 <- CPF(model, theta, discretization$coarse, observations, nparticles, ref_trajectory = NULL)$new_trajectory
-  chain_state_coarse2 <- CPF(model, theta, discretization$coarse, observations, nparticles, ref_trajectory = NULL)$new_trajectory
-  chain_state_fine1 <- CPF(model, theta, discretization$fine, observations, nparticles, ref_trajectory = NULL)$new_trajectory
-  chain_state_fine2 <- CPF(model, theta, discretization$fine, observations, nparticles, ref_trajectory = NULL)$new_trajectory
+  chain_state_coarse1 <- CPF(model, theta, discretization$coarse, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
+  chain_state_coarse2 <- CPF(model, theta, discretization$coarse, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
+  chain_state_fine1 <- CPF(model, theta, discretization$fine, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
+  chain_state_fine2 <- CPF(model, theta, discretization$fine, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
   
   # initialize coarse and fine estimators computation
   mcmcestimator_coarse <- model$functional(theta, discretization$coarse, chain_state_coarse1, observations)
@@ -145,8 +148,8 @@ unbiased_gradient_increment <- function(model, theta, discretization, observatio
   # correction computes the sum of min(1, (t - k + 1) / (m - k + 1)) * (h(X_{t+1}) - h(X_t)) for t=k,...,max(m, tau - 1)
   correction_coarse <- rep(0, theta_dimension)
   correction_fine <- rep(0, theta_dimension)
-  chain_state_coarse1 <- CPF(model, theta, discretization$coarse, observations, nparticles, chain_state_coarse1)$new_trajectory
-  chain_state_fine1 <- CPF(model, theta, discretization$fine, observations, nparticles, chain_state_fine1)$new_trajectory
+  chain_state_coarse1 <- CPF(model, theta, discretization$coarse, observations, nparticles, resampling_threshold, chain_state_coarse1)$new_trajectory
+  chain_state_fine1 <- CPF(model, theta, discretization$fine, observations, nparticles, resampling_threshold, chain_state_fine1)$new_trajectory
   if (k == 0){
     correction_coarse <- correction_coarse + (min(1, (0 - k + 1)/(m - k + 1))) *
       (model$functional(theta, discretization$coarse, chain_state_coarse1, observations) - 
@@ -174,7 +177,7 @@ unbiased_gradient_increment <- function(model, theta, discretization, observatio
     iter <- iter + 1
     
     # sample from 4-way coupled CPF kernel
-    coupled4CPF <- coupled4_CPF(model, theta, discretization, observations, nparticles, coupled_resampling,
+    coupled4CPF <- coupled4_CPF(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling,
                                 chain_state_coarse1, chain_state_coarse2,
                                 chain_state_fine1, chain_state_fine2)
     chain_state_coarse1 <- coupled4CPF$new_trajectory_coarse1

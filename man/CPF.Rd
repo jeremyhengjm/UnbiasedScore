@@ -10,6 +10,7 @@ CPF(
   discretization,
   observations,
   nparticles,
+  resampling_threshold = 1,
   ref_trajectory = NULL,
   treestorage = FALSE
 )
@@ -24,6 +25,8 @@ CPF(
 \item{observations}{a matrix of observations, of size nobservations x ydimension}
 
 \item{nparticles}{number of particles}
+
+\item{resampling_threshold}{ESS proportion below which resampling is triggered (always resample at observation times by default)}
 
 \item{ref_trajectory}{a matrix of reference trajectory, of size xdimension x statelength; 
 if missing, this function runs a standard particle filter}
