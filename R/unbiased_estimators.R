@@ -54,7 +54,7 @@ unbiased_gradient <- function(model, theta, discretization, observations, nparti
   while (!finished && iter < max_iterations){
     # increment counter
     iter <- iter + 1
-    cat(iter, "\n")
+    # cat(iter, "\n")
     
     # sample from 2-way coupled CPF kernel
     coupled2CPF <- coupled2_CPF(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling, 
@@ -127,7 +127,7 @@ unbiased_gradient <- function(model, theta, discretization, observations, nparti
 #' iteration is the number of iterations taken
 #' finished indicates if the algorithm has completed successfully
 #' @export
-unbiased_gradient_increment <- function(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling, 
+unbiased_gradient_increment <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1, coupled_resampling, 
                                         k = 0, m = 1, max_iterations = Inf){
   
   # initialize chains

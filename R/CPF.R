@@ -14,7 +14,7 @@
 #'@return a matrix containing a new trajectory of size xdimension x statelength
 #'@export
 CPF <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1,
-                ref_trajectory = NULL, treestorage = FALSE){
+                ref_trajectory = NULL, treestorage = FALSE, tempering = 1){
   
   # get model/problem settings 
   nobservations <- nrow(observations)
@@ -58,7 +58,7 @@ CPF <- function(model, theta, discretization, observations, nparticles, resampli
     # compute weights
     index_obs <- index_obs + 1 
     observation <- observations[index_obs, ] # 1 x ydimension 
-    logweights <- model$dmeasurement(theta, stepsize[1], xparticles, observation)
+    logweights <- model$dmeasurement(theta, stepsize[1], xparticles, observation) * tempering
     maxlogweights <- max(logweights)
     weights <- exp(logweights - maxlogweights)
     normweights <- weights / sum(weights)
@@ -102,7 +102,7 @@ CPF <- function(model, theta, discretization, observations, nparticles, resampli
       # compute weights
       index_obs <- index_obs + 1 
       observation <- observations[index_obs, ] # 1 x ydimension 
-      logweights <- logweights + model$dmeasurement(theta, stepsize[k], xparticles, observation)
+      logweights <- logweights + model$dmeasurement(theta, stepsize[k], xparticles, observation) * tempering
       maxlogweights <- max(logweights)
       weights <- exp(logweights - maxlogweights)
       normweights <- weights / sum(weights)
