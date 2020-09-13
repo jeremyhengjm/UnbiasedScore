@@ -40,6 +40,7 @@ CPF <- function(model, theta, discretization, observations, nparticles, resampli
   if (!is.null(ref_trajectory)){
     xparticles[, nparticles] <- ref_trajectory[, 1]
   }
+  
   if (treestorage){
     Tree$init(xparticles) # tree to storage trajectories
   } else {

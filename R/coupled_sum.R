@@ -14,16 +14,29 @@
 #' @param maximum_level finest discretization level 
 #' @param level_distribution list containing mass_function and tail_function that specify the distribution of levels, 
 #' e.g. by calling \code{\link{compute_level_distribution}} 
+#' @param is_discrete_observation boolean indicating if observations are discrete
 #' @return a list with objects such as 
 #' random_level is the random level to truncated infinite sum 
 #' unbiasedestimator is an unbiased estimator of the gradient of the log-likelihood
+#' cost is the cost to compute the coupled-sum estimator
+#' elapsedtime is the time taken to compute the coupled-sum estimator
 #' @export
 coupled_sum <- function(model, theta, observations, nparticles, resampling_threshold = 1, coupled2_resampling, coupled4_resampling, 
-                        k = 0, m = 1, minimum_level, maximum_level, level_distribution){
+                        k = 0, m = 1, minimum_level, maximum_level, level_distribution, is_discrete_observation = T){
+  
+  # start timer
+  tic()
+  
+  # for continuous observation process, compute observation sequence corresponding to the discretization level
+  if (!is_discrete_observation){
+    observations <- model$compute_observations(minimum_level)$observations
+  }
   
   # initialize estimate by computing gradient at coarsest discretization level
   discretization <- model$construct_discretization(minimum_level)
-  estimator <- unbiased_gradient(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling, k = k, m = m, max_iterations = Inf)$unbiasedestimator
+  gradient <- unbiased_gradient(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling, k = k, m = m, max_iterations = Inf)
+  estimator <- gradient$unbiasedestimator
+  cost <- nparticles * discretization$nsteps * gradient$cost 
   
   # sample random level to truncated infinite sum
   all_levels <- minimum_level:maximum_level
@@ -32,14 +45,28 @@ coupled_sum <- function(model, theta, observations, nparticles, resampling_thres
   # increment estimate by computing the difference of the gradient at two successive discretization levels
   if (random_level > minimum_level){
     for (level in (minimum_level+1):random_level){
+      
+      # for continuous observation process, compute observation sequence corresponding to the discretization level
+      if (!is_discrete_observation){
+        observations <- model$compute_observations(level)$observations
+      }
+      
       discretization <- model$construct_successive_discretization(level)
-      increment <- unbiased_gradient_increment(model, theta, discretization, observations, nparticles, resampling_threshold, coupled4_resampling, 
-                                               k = k, m = m, max_iterations = Inf)$unbiasedestimator
+      gradient_increment <- unbiased_gradient_increment(model, theta, discretization, observations, nparticles, resampling_threshold, coupled4_resampling, 
+                                               k = k, m = m, max_iterations = Inf)
+      cost <- cost + nparticles * discretization$coarse$nsteps * gradient_increment$cost_coarse
+      cost <- cost + nparticles * discretization$fine$nsteps * gradient_increment$cost_fine
+      increment <- gradient_increment$unbiasedestimator
       estimator <- estimator + increment / level_distribution$tail_function[level-minimum_level+1]
     }
   }
   
-  return(list(random_level = random_level, unbiasedestimator = estimator))
+  # end timer and compute elapsed time
+  timer <- toc(quiet = TRUE)
+  elapsedtime <- timer$toc - timer$tic
+  
+  return(list(random_level = random_level, unbiasedestimator = estimator, 
+              cost = cost, elapsedtime = elapsedtime))
   
 }
 

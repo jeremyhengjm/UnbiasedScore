@@ -14,16 +14,18 @@
 #' @param maximum_level finest discretization level 
 #' @param level_distribution list containing mass_function and tail_function that specify the distribution of levels, 
 #' e.g. by calling \code{\link{compute_level_distribution}} 
+#' @param is_discrete_observation boolean indicating if observations are discrete
 #' @param learning_rate stepsize of the SGD algorithm
 #' @param stopping_threshold criterion to terminate iterations
 #' @param max_iterations maximum number of SGD iterations
+#' @param mcmc_iter use unbiased estimate if mcmc_iter == 0 or mcmc estimateat maximum_level with mcmc_iter iterations if mcmc_iter > 0
 #' @return a list with objects such as 
 #' theta parameters at the last SGD iteration
 #' trajectory parameters across the SGD iterations
 #' @export
 SGD <- function(model, theta_initial, observations, nparticles, resampling_threshold = 1, coupled2_resampling, coupled4_resampling, 
-                k = 0, m = 1, minimum_level, maximum_level, level_distribution, 
-                learning_rate = 1e-3, stopping_threshold = 1e-4, max_iterations = 1e6){
+                k = 0, m = 1, minimum_level, maximum_level, level_distribution, is_discrete_observation = T,
+                learning_rate = 1e-3, stopping_threshold = 1e-4, max_iterations = 1e6, mcmc_iter=0){
   
   # initialize 
   iter <- 1
@@ -38,9 +40,18 @@ SGD <- function(model, theta_initial, observations, nparticles, resampling_thres
   while (iter < max_iterations && continue){
     iter <- iter + 1
     
-    # compute unbiased estimator of gradient 
-    gradient <- coupled_sum(model, theta, observations, nparticles, resampling_threshold, coupled2_resampling, coupled4_resampling, 
-                            k = k, m = m, minimum_level, maximum_level, level_distribution)$unbiasedestimator
+    # compute unbiased estimator of gradient
+    if (mcmc_iter == 0){
+      gradient <- coupled_sum(model, theta, observations, nparticles, resampling_threshold, coupled2_resampling, coupled4_resampling, 
+                              k = k, m = m, minimum_level, maximum_level, level_distribution, is_discrete_observation)$unbiasedestimator
+    } else {
+      # Generation the suitable observation sequence corresponding to the level
+      if (!is_discrete_observation){
+        observations <- model$compute_observations(maximum_level)$observations
+      }
+      discretization <- model$construct_discretization(maximum_level)
+      gradient <- mcmc_estimator(model, theta, discretization, observations, nparticles, resampling_threshold, mcmc_iter)
+    }
     
     # parameter update
     theta_new <- theta + learning_rate * gradient

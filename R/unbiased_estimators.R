@@ -17,9 +17,13 @@
 #' meetingtime is the meeting time of the two chains at level
 #' iteration is the number of iterations taken
 #' finished indicates if the algorithm has completed successfully
+#' cost is the cost of the algorithm in units of the CPF kernel at current discretization level
+#' elapsedtime is the time taken by the algorithm
 #' @export
 unbiased_gradient <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1, coupled_resampling, 
                               k = 0, m = 1, max_iterations = Inf){
+  # start timer
+  tic()
   
   # initialize chains
   chain_state1 <- CPF(model, theta, discretization, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
@@ -97,8 +101,16 @@ unbiased_gradient <- function(model, theta, discretization, observations, nparti
   # compute unbiased gradient estimator
   unbiasedestimator <- mcmcestimator + correction
   
+  # compute cost in units of CPF kernel at current discretization level 
+  cost <- 2 * (meetingtime - 1) + max(1, m + 1 - meetingtime)
+  
+  # end timer and compute elapsed time
+  timer <- toc(quiet = TRUE)
+  elapsedtime <- timer$toc - timer$tic
+  
   return(list(mcmcestimator = mcmcestimator, unbiasedestimator = unbiasedestimator, 
-              meetingtime = meetingtime, iteration = iter, finished = finished))
+              meetingtime = meetingtime, iteration = iter, finished = finished, 
+              cost = cost, elapsedtime = elapsedtime))
 }
 
 #' @rdname unbiased_gradient_increment
@@ -126,9 +138,15 @@ unbiased_gradient <- function(model, theta, discretization, observations, nparti
 #' meetingtime_fine is the meeting time of the two chains at level
 #' iteration is the number of iterations taken
 #' finished indicates if the algorithm has completed successfully
+#' cost_coarse is the cost of the algorithm in units of the CPF kernel at coarse discretization level
+#' cost_fine is the cost of the algorithm in units of the CPF kernel at fine discretization level
+#' elapsedtime is the time taken by the algorithm
 #' @export
 unbiased_gradient_increment <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1, coupled_resampling, 
                                         k = 0, m = 1, max_iterations = Inf){
+  
+  # start timer
+  tic()
   
   # initialize chains
   chain_state_coarse1 <- CPF(model, theta, discretization$coarse, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
@@ -246,11 +264,20 @@ unbiased_gradient_increment <- function(model, theta, discretization, observatio
   unbiasedestimator_fine <- mcmcestimator_fine + correction_fine
   unbiasedestimator <- unbiasedestimator_fine - unbiasedestimator_coarse 
   
+  # compute cost in units of CPF kernel at current discretization level 
+  cost_coarse <- 2 * (meetingtime_coarse - 1) + max(1, m + 1 - meetingtime_coarse)
+  cost_fine <- 2 * (meetingtime_fine - 1) + max(1, m + 1 - meetingtime_fine)
+  
+  # end timer and compute elapsed time
+  timer <- toc(quiet = TRUE)
+  elapsedtime <- timer$toc - timer$tic
+  
   return(list(mcmcestimator_coarse = mcmcestimator_coarse, mcmcestimator_fine = mcmcestimator_fine, 
               unbiasedestimator_coarse = unbiasedestimator_coarse, unbiasedestimator_fine = unbiasedestimator_fine, 
               mcmcestimator = mcmcestimator, unbiasedestimator = unbiasedestimator, 
               meetingtime_coarse = meetingtime_coarse, meetingtime_fine = meetingtime_fine, 
-              iteration = iter, finished = finished))
+              iteration = iter, finished = finished, 
+              cost_coarse = cost_coarse, cost_fine = cost_fine, elapsedtime = elapsedtime))
 }
 
 

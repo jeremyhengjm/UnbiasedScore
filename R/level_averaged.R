@@ -18,11 +18,14 @@
 #' @param upper_level upper level of multilevel estimator
 #' @return a list with objects such as 
 #' random_level is the random level to truncated infinite sum 
-#' multilevel_estimator is a multilevel estimator of the gradient of the log-likelihood
 #' unbiasedestimator is an unbiased estimator of the gradient of the log-likelihood
+#' cost is the cost to compute the level-averaged estimator
+#' elapsedtime is the time taken to compute the level-averaged estimator
 #' @export
 level_averaged <- function(model, theta, observations, nparticles, resampling_threshold = 1, coupled2_resampling, coupled4_resampling, 
                            k = 0, m = 1, minimum_level, maximum_level, level_distribution, lower_level, upper_level){
+  # start timer
+  tic()
   
   # sample random level to truncated infinite sum
   all_levels <- minimum_level:maximum_level
@@ -30,8 +33,9 @@ level_averaged <- function(model, theta, observations, nparticles, resampling_th
   
   # preallocate
   theta_dimension <- model$theta_dimension
-  multilevel_estimator <- rep(0, theta_dimension)
+  level_estimator <- rep(0, theta_dimension)
   correction <- rep(0, theta_dimension)
+  cost <- 0
   
   if (random_level > lower_level){
     # bias correction term is non-zero
@@ -39,46 +43,56 @@ level_averaged <- function(model, theta, observations, nparticles, resampling_th
     for (level in (lower_level+1):random_level){
       # unbiased estimation of gradient increment
       discretization <- model$construct_successive_discretization(level)
-      increment <- unbiased_gradient_increment(model, theta, discretization, observations, nparticles, resampling_threshold, coupled4_resampling, 
+      gradient_increment <- unbiased_gradient_increment(model, theta, discretization, observations, nparticles, resampling_threshold, coupled4_resampling, 
                                                k = k, m = m, max_iterations = Inf)
+      cost <- cost + nparticles * discretization$coarse$nsteps * gradient_increment$cost_coarse
+      cost <- cost + nparticles * discretization$fine$nsteps * gradient_increment$cost_fine
+      
       if (level-1 <= upper_level){
-        # update multilevel estimator
-        gradient_estimator <- increment$unbiasedestimator_coarse
-        multilevel_estimator <- multilevel_estimator + gradient_estimator / (upper_level - lower_level + 1)
+        # update level estimator
+        gradient_estimator <- gradient_increment$unbiasedestimator_coarse
+        level_estimator <- level_estimator + gradient_estimator / (upper_level - lower_level + 1)
       }
       
       # update bias correction term
-      gradient_increment <- increment$unbiasedestimator
-      correction <- correction + gradient_increment * min( 1, (level - lower_level) / (upper_level - lower_level + 1) ) / 
+      increment <- gradient_increment$unbiasedestimator
+      correction <- correction + increment * min( 1, (level - lower_level) / (upper_level - lower_level + 1) ) / 
         level_distribution$tail_function[level-minimum_level+1] 
     }
     
-    # compute additional gradient terms in multilevel estimator if necessary
+    # compute additional gradient terms in level estimator if necessary
     if (random_level <= upper_level){
       for (level in random_level:upper_level){
         discretization <- model$construct_discretization(level)
-        estimator <- unbiased_gradient(model, theta, discretization, observations, nparticles, resampling_threshold, 
-                                       coupled2_resampling, k = k, m = m, max_iterations = Inf)
-        gradient_estimator <- estimator$unbiasedestimator
-        multilevel_estimator <- multilevel_estimator + gradient_estimator / (upper_level - lower_level + 1)
+        gradient <- unbiased_gradient(model, theta, discretization, observations, nparticles, resampling_threshold, 
+                                      coupled2_resampling, k = k, m = m, max_iterations = Inf)
+        gradient_estimator <- gradient$unbiasedestimator
+        level_estimator <- level_estimator + gradient_estimator / (upper_level - lower_level + 1)
+        cost <- cost + nparticles * discretization$nsteps * gradient$cost 
       }
     }
     
   } else {
-    # bias correction term is zero, return multilevel estimator
+    # bias correction term is zero, return level estimator
     for (level in lower_level:upper_level){
       discretization <- model$construct_discretization(level)
-      estimator <- unbiased_gradient(model, theta, discretization, observations, nparticles, resampling_threshold, 
+      gradient <- unbiased_gradient(model, theta, discretization, observations, nparticles, resampling_threshold, 
                                      coupled2_resampling, k = k, m = m, max_iterations = Inf)
-      gradient_estimator <- estimator$unbiasedestimator
-      multilevel_estimator <- multilevel_estimator + gradient_estimator / (upper_level - lower_level + 1)
+      gradient_estimator <- gradient$unbiasedestimator
+      level_estimator <- level_estimator + gradient_estimator / (upper_level - lower_level + 1)
+      cost <- cost + nparticles * discretization$nsteps * gradient$cost 
     }
   }
   
   # compute unbiased gradient estimator
-  unbiasedestimator <- multilevel_estimator + correction
+  unbiasedestimator <- level_estimator + correction
   
-  return(list(random_level = random_level, multilevel_estimator = multilevel_estimator, unbiasedestimator = unbiasedestimator))
+  # end timer and compute elapsed time
+  timer <- toc(quiet = TRUE)
+  elapsedtime <- timer$toc - timer$tic
+  
+  return(list(random_level = random_level, unbiasedestimator = unbiasedestimator, 
+              cost = cost, elapsedtime = elapsedtime))
   
 }
 
