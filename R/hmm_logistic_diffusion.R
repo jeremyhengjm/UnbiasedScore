@@ -25,6 +25,8 @@ hmm_logistic_diffusion <- function(times, sigma0){
   # parameters of the model
   theta_dimension <- 3 # not inferring diffusivity parameter
   
+  is_discrete_observation <- T
+  
   # time intervals
   time_intervals <- diff(times)
   nintervals <- length(time_intervals)
@@ -124,6 +126,7 @@ hmm_logistic_diffusion <- function(times, sigma0){
   jacobian_drift <- function(theta, x) c(x, -x^2, 0)
   
   # diffusivity 
+  constant_sigma <- FALSE
   sigma <- function(x) sigma0 * x
   Sigma <- function(x) sigma(x)^2
   Omega <- function(x) sigma0^(-2) * x^(-2)
@@ -167,7 +170,7 @@ hmm_logistic_diffusion <- function(times, sigma0){
   }
   
   # evaluate gradient of log-observation density
-  gradient_dmeasurement <- function(theta, stepsize, xstate, observation){
+  gradient_dmeasurement <- function(theta, stepsize, x_sub_trajectory, observation){
     # theta is a vector of size 3
     # stepsize is the time discretization step size 
     # xstate is a number 
@@ -216,8 +219,10 @@ hmm_logistic_diffusion <- function(times, sigma0){
   model <- list(xdimension = xdimension,
                 ydimension = ydimension,
                 theta_dimension = theta_dimension,
+                is_discrete_observation = is_discrete_observation,
                 construct_discretization = construct_discretization,
                 construct_successive_discretization = construct_successive_discretization,
+                constant_sigma = constant_sigma,
                 sigma = sigma,
                 rinit = rinit, 
                 rtransition = rtransition, 

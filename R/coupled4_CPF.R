@@ -1,5 +1,5 @@
 #' @rdname coupled4_CPF
-#' @title 4-way Coupled Coupled Conditional Particle Filter
+#' @title 4-Coupled Conditional Particle Filter
 #' @description Runs four coupled conditional particle filters (two at each discretization level)
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
@@ -8,7 +8,7 @@
 #' @param observations a matrix of observations, of size nobservations x ydimension
 #' @param nparticles number of particles
 #' @param resampling_threshold ESS proportion below which resampling is triggered (always resample at observation times by default)
-#' @param coupled_resampling a 4-way coupled resampling scheme, such as \code{\link{coupled4_maximal_coupled_residuals}}
+#' @param coupled_resampling a 4-marginal coupled resampling scheme, such as \code{\link{coupled4_maximalchains_maximallevels_independent_residuals}}
 #' @param ref_trajectory_coarse1 a matrix of first reference trajectory for coarser discretization level, of size xdimension x statelength_coarse
 #' @param ref_trajectory_coarse2 a matrix of second reference trajectory for coarser discretization level, of size xdimension x statelength_coarse
 #' @param ref_trajectory_fine1 a matrix of first reference trajectory for finer discretization level, of size xdimension x statelength_fine
@@ -129,6 +129,10 @@ coupled4_CPF <- function(model, theta, discretization, observations, nparticles,
   ancestors_coarse2 <- 1:nparticles
   ancestors_fine1 <- 1:nparticles
   ancestors_fine2 <- 1:nparticles
+  
+  # index last observation
+  last_obs_fine <- 1
+  last_obs_coarse <- 1
   
   # random initialization
   if (obstimes[1]){
@@ -283,13 +287,35 @@ coupled4_CPF <- function(model, theta, discretization, observations, nparticles,
       # compute weights
       index_obs <- index_obs + 1
       observation <- observations[index_obs, ] # 1 x ydimension 
-      if (meet_fine){
-        logweights_fine1 <- logweights_fine1 + model$dmeasurement(theta, stepsize_fine[k], xparticles_fine1, observation)
-        logweights_fine2 <- logweights_fine1
+      
+      if (model$is_discrete_observation){
+        # observation only depends on current particles in a discrete model
+        if (meet_fine){
+          logweights_fine1 <- logweights_fine1 + model$dmeasurement(theta, stepsize_fine[k], xparticles_fine1, observation)
+          logweights_fine2 <- logweights_fine1
+        } else {
+          logweights_fine1 <- logweights_fine1 + model$dmeasurement(theta, stepsize_fine[k], xparticles_fine1, observation)
+          logweights_fine2 <- logweights_fine2 + model$dmeasurement(theta, stepsize_fine[k], xparticles_fine2, observation)
+        }
+        
       } else {
-        logweights_fine1 <- logweights_fine1 + model$dmeasurement(theta, stepsize_fine[k], xparticles_fine1, observation)
-        logweights_fine2 <- logweights_fine2 + model$dmeasurement(theta, stepsize_fine[k], xparticles_fine2, observation)
+        # observation depends on inter-observation states
+        x_sub_trajectory1 <- array(0, dim = c(k-last_obs_fine+1, xdimension, nparticles))
+        x_sub_trajectory1[ , , ] <- xtrajectory_fine1[last_obs_fine:k, , ]
+        
+        if (meet_fine){
+          logweights_fine1 <- logweights_fine1 + model$dmeasurement(theta, stepsize_fine[k], x_sub_trajectory1, observation)
+          logweights_fine2 <- logweights_fine1
+        } else {
+          x_sub_trajectory2 <- array(0, dim = c(k-last_obs_fine+1, xdimension, nparticles))
+          x_sub_trajectory2[ , , ] <- xtrajectory_fine2[last_obs_fine:k, , ]
+          logweights_fine1 <- logweights_fine1 + model$dmeasurement(theta, stepsize_fine[k], x_sub_trajectory1, observation)
+          logweights_fine2 <- logweights_fine2 + model$dmeasurement(theta, stepsize_fine[k], x_sub_trajectory2, observation)
+        }
+        
       }
+      
+      last_obs_fine <- k + 1 # index last observation
       maxlogweights_fine1 <- max(logweights_fine1)
       maxlogweights_fine2 <- max(logweights_fine2)
       weights_fine1 <- exp(logweights_fine1 - maxlogweights_fine1)
@@ -299,13 +325,34 @@ coupled4_CPF <- function(model, theta, discretization, observations, nparticles,
       ess_fine1 <- 1 / sum(normweights_fine1^2)
       ess_fine2 <- 1 / sum(normweights_fine2^2)
       
-      if (meet_coarse){
-        logweights_coarse1 <- logweights_coarse1 + model$dmeasurement(theta, stepsize_coarse[index_coarse], xparticles_coarse1, observation)
-        logweights_coarse2 <- logweights_coarse1
+      if (model$is_discrete_observation){
+        # observation only depends on current particles in a discrete model
+        if (meet_coarse){
+          logweights_coarse1 <- logweights_coarse1 + model$dmeasurement(theta, stepsize_coarse[index_coarse], xparticles_coarse1, observation)
+          logweights_coarse2 <- logweights_coarse1
+        } else {
+          logweights_coarse1 <- logweights_coarse1 + model$dmeasurement(theta, stepsize_coarse[index_coarse], xparticles_coarse1, observation)
+          logweights_coarse2 <- logweights_coarse2 + model$dmeasurement(theta, stepsize_coarse[index_coarse], xparticles_coarse2, observation)
+        }
+        
       } else {
-        logweights_coarse1 <- logweights_coarse1 + model$dmeasurement(theta, stepsize_coarse[index_coarse], xparticles_coarse1, observation)
-        logweights_coarse2 <- logweights_coarse2 + model$dmeasurement(theta, stepsize_coarse[index_coarse], xparticles_coarse2, observation)
+        # observation depends on inter-observation states
+        x_sub_trajectory1 <- array(0, dim = c(index_coarse-last_obs_coarse+1, xdimension, nparticles))
+        x_sub_trajectory1[ , , ] <- xtrajectory_coarse1[last_obs_coarse:index_coarse, , ]
+        
+        if (meet_coarse){
+          logweights_coarse1 <- logweights_coarse1 + model$dmeasurement(theta, stepsize_coarse[index_coarse], x_sub_trajectory1, observation)
+          logweights_coarse2 <- logweights_coarse1
+        } else {
+          x_sub_trajectory2 <- array(0, dim = c(index_coarse-last_obs_coarse+1, xdimension, nparticles))
+          x_sub_trajectory2[ , , ] <- xtrajectory_coarse2[last_obs_coarse:index_coarse, , ]
+          logweights_coarse1 <- logweights_coarse1 + model$dmeasurement(theta, stepsize_coarse[index_coarse], x_sub_trajectory1, observation)
+          logweights_coarse2 <- logweights_coarse2 + model$dmeasurement(theta, stepsize_coarse[index_coarse], x_sub_trajectory2, observation)
+        }
+        
       }
+      
+      last_obs_coarse <- index_coarse + 1 # index last observation
       maxlogweights_coarse1 <- max(logweights_coarse1)
       maxlogweights_coarse2 <- max(logweights_coarse2)
       weights_coarse1 <- exp(logweights_coarse1 - maxlogweights_coarse1)

@@ -17,9 +17,10 @@
 #' * functional is the smoothing function to compute gradient of log-likelihood. 
 #' @return A list 
 #' @export
-hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2){
+hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2, level_observation, terminal_time){
   
   # model dimensions
+  is_discrete_observation <- F
   xdimension <- 2
   ydimension <- 2
   
@@ -27,11 +28,11 @@ hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2){
   theta_dimension <- 12
   
   # compute observation counts given spike times
-  start_time <- floor(min(c(min(spiketimes1), min(spiketimes2))))
-  end_time <- ceiling(max(c(max(spiketimes1), max(spiketimes2))))
+  start_time <- 0 #floor(min(c(min(spiketimes1), min(spiketimes2))))
+  end_time <- terminal_time #ceiling(max(c(max(spiketimes1), max(spiketimes2))))
   
-  compute_observations <- function(level){
-    nbins <- 2^level # same as time discretization
+  compute_observations <- function(){
+    nbins <- 2^level_observation # same as time discretization
     times <- seq(start_time, end_time, length.out = nbins + 1)
     observations <- matrix(0, nrow = nbins, ncol = ydimension)
   
@@ -47,12 +48,17 @@ hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2){
   
   # construct discretization
   construct_discretization <- function(level){
-    stepsize <- 2^(-level)
+    stepsize <- 2^(-level) * terminal_time
     nsteps <- 2^level
     all_stepsizes <- rep(stepsize, nsteps)
     statelength <- nsteps + 1
-    obstimes <- rep(TRUE, statelength) # same discretization as the latent process
-    obstimes[1] <- FALSE # deterministic initialization 
+    #obstimes <- rep(TRUE, statelength) # same discretization as the latent process
+    #obstimes[1] <- FALSE # deterministic initialization 
+    
+    obstimes <- rep(FALSE, statelength)
+    # No observation at first time step for deterministic initialization
+    obs_index <- seq(2^(level-level_observation)+1, statelength, by = 2^(level-level_observation))
+    obstimes[obs_index] <- TRUE
     
     return(list(stepsize = all_stepsizes, nsteps = nsteps, 
                 statelength = statelength, obstimes = obstimes))
@@ -152,9 +158,10 @@ hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2){
   } 
   
   # # diffusivity 
+  constant_sigma <- TRUE
   sigma <- 1
-  # Sigma <- 1
-  # Omega <- 1
+  Sigma <- 1
+  Omega <- 1
   
   # sample from initial distribution
   rinit <- function(nparticles){
@@ -173,7 +180,41 @@ hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2){
     return(xparticles + stepsize * drift(theta, xparticles) + sqrt(stepsize) *  rand) 
   }
   
-  dmeasurement <- function(theta, stepsize, xparticles, observation){
+  # evaluate Markov transition density 
+  dtransition <- function(theta, stepsize, xparticles, next_xparticles){
+    # theta is a vector of size 3
+    # stepsize is the time discretization step size 
+    # xparticles is a matrix of size xdimension x nparticles
+    # next_xparticles is a vector of size xdimension
+    
+    particle_mean <- xparticles + stepsize * drift(theta, xparticles)
+    return(dnorm(next_xparticles[1], mean = particle_mean[1, ], sd = sqrt(stepsize), log = TRUE) + 
+             dnorm(next_xparticles[2], mean = particle_mean[2, ], sd = sqrt(stepsize), log = TRUE))
+  }
+  
+  dmeasurement <- function(theta, stepsize, x_sub_trajectory, observation){
+    # theta is a vector of size theta_dimension
+    # stepsize is the time discretization step size 
+    # x_sub_trajectory is a matrix of size length_sub_trajectory x xdimension x nparticles
+    # observation is a vector of size ydimension
+    # output is a vector of size nparticles
+    
+    # parameters in observation model
+    kappa1 <- theta[6]
+    kappa2 <- theta[12]
+    
+    # evaluate observation density
+    if (dim(x_sub_trajectory)[1] == 1){
+      obsdensity <- observation[1] * (log(stepsize) + kappa1 + x_sub_trajectory[1, 1, ]) - stepsize * exp(kappa1 + x_sub_trajectory[1, 1, ]) - lfactorial(observation[1]) + 
+        observation[2] * (log(stepsize) + kappa2 + x_sub_trajectory[1, 2, ]) - stepsize * exp(kappa2 + x_sub_trajectory[1, 2, ]) - lfactorial(observation[2])
+    } else {
+      obsdensity <- observation[1] * (log(stepsize) + log(colSums(exp(kappa1 + x_sub_trajectory[, 1, ])))) - stepsize * colSums(exp(kappa1 + x_sub_trajectory[, 1, ])) - lfactorial(observation[1]) +
+        observation[2] * (log(stepsize) + log(colSums(exp(kappa2 + x_sub_trajectory[, 2, ])))) - stepsize * colSums(exp(kappa2 + x_sub_trajectory[, 2, ])) - lfactorial(observation[2])
+    }
+    return(obsdensity)
+  }
+  
+  dmeasurement_old <- function(theta, stepsize, xparticles, observation){
     # theta is a vector of size theta_dimension
     # stepsize is the time discretization step size 
     # xparticles is a matrix of size xdimension x nparticles
@@ -186,16 +227,16 @@ hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2){
     
     # evaluate observation density
     obsdensity <- observation[1] * (log(stepsize) + kappa1 + xparticles[1, ]) - stepsize * exp(kappa1 + xparticles[1, ]) - lfactorial(observation[1]) + 
-                  observation[2] * (log(stepsize) + kappa2 + xparticles[2, ]) - stepsize * exp(kappa2 + xparticles[2, ]) - lfactorial(observation[2])
+      observation[2] * (log(stepsize) + kappa2 + xparticles[2, ]) - stepsize * exp(kappa2 + xparticles[2, ]) - lfactorial(observation[2])
     
     return(obsdensity)
   }
   
   # evaluate gradient of log-observation density
-  gradient_dmeasurement <- function(theta, stepsize, xstate, observation){
+  gradient_dmeasurement <- function(theta, stepsize, x_sub_trajectory, observation){
     # theta is a vector of size theta_dimension
     # stepsize is the time discretization step size 
-    # xstate is a vector of size xdimension
+    # x_sub_trajectory is a matrix of size xdimension x length_sub_trajectory
     # observation is a vector of size ydimension  
     # output is a vector of size theta_dimension
     
@@ -203,10 +244,17 @@ hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2){
     kappa1 <- theta[6]
     kappa2 <- theta[12]
     
-    # compute gradient of log-observation density 
+    # compute gradient of log-observation density
     output <- rep(0, theta_dimension)
-    output[6] <- observation[1] - stepsize * exp(kappa1 + xstate[1]) # w.r.t. kappa1
-    output[12] <- observation[2] - stepsize * exp(kappa2 + xstate[2]) # w.r.t. kappa2 
+    if (dim(x_sub_trajectory)[2] == 1){
+      output[6] <- observation[1] - stepsize * exp(kappa1 + x_sub_trajectory[1, 1]) # w.r.t. kappa1
+      output[12] <- observation[2] - stepsize * exp(kappa2 + x_sub_trajectory[2, 1]) # w.r.t. kappa2 
+    } else {
+      output[6] <- observation[1] - stepsize * sum(exp(kappa1 + x_sub_trajectory[1, ])) # w.r.t. kappa1
+      output[12] <- observation[2] - stepsize * sum(exp(kappa2 + x_sub_trajectory[2, ])) # w.r.t. kappa2 
+    }
+    #output[6] <- observation[1] - stepsize * exp(kappa1 + xstate[1]) # w.r.t. kappa1
+    #output[12] <- observation[2] - stepsize * exp(kappa2 + xstate[2]) # w.r.t. kappa2 
     
     return(output)
   }
@@ -227,6 +275,9 @@ hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2){
     output <- rep(0, theta_dimension)
     index_obs <- 0 # deterministic initialization
   
+    # index last observation
+    last_obs <- 1
+    
     # loop over time 
     for (k in 1:nsteps){
       xstate <- xtrajectory[, k]
@@ -242,7 +293,14 @@ hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2){
       if (obstimes[k+1]){
         index_obs <- index_obs + 1
         xstate <- xtrajectory[, k+1]
-        output <- output + gradient_dmeasurement(theta, stepsize[k], xstate, observations[index_obs, ])
+        
+        x_sub_trajectory <- array(0, dim = c(xdimension, k-last_obs+1))
+        x_sub_trajectory[ , ] <- xtrajectory[ , last_obs:k]
+        
+        # index last observation
+        last_obs <- k+1
+        
+        output <- output + gradient_dmeasurement(theta, stepsize[k], x_sub_trajectory, observations[index_obs, ])
       }
     }
     return(output)
@@ -251,12 +309,15 @@ hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2){
   model <- list(xdimension = xdimension,
                 ydimension = ydimension,
                 theta_dimension = theta_dimension,
+                is_discrete_observation = is_discrete_observation,
                 compute_observations = compute_observations, 
                 construct_discretization = construct_discretization,
                 construct_successive_discretization = construct_successive_discretization,
+                constant_sigma = constant_sigma,
                 sigma = sigma, 
                 rinit = rinit, 
-                rtransition = rtransition, 
+                rtransition = rtransition,
+                dtransition = dtransition,
                 dmeasurement = dmeasurement,
                 functional = functional)
   return(model)

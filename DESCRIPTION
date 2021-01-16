@@ -1,12 +1,12 @@
-Package: UnbiasedGradients
+Package: UnbiasedScore
 Type: Package
-Title: What the package does (short line)
+Title: Unbiased estimators of the score function 
 Version: 1.0
-Date: 2020-04-22
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Date: 2021-01-16
+Author: Jeremy Heng
+Maintainer: Jeremy Heng <jeremyhengjm@gmail.com>
+Description: This R package provides unbiased estimators of the score function, i.e. the gradient of the log-likelihood for a class of partially observed diffusions.
+License: GPL (>= 2)
 Imports: Rcpp (>= 1.0.3)
 LinkingTo: Rcpp, RcppEigen, tictoc
 RoxygenNote: 7.1.0

@@ -24,6 +24,9 @@ hmm_ornstein_uhlenbeck <- function(times){
   # parameters of the model
   theta_dimension <- 3
   
+  # type of observation model
+  is_discrete_observation <- TRUE
+  
   # time intervals
   nobservations <- length(times) # nobservations at unit times
   
@@ -64,6 +67,7 @@ hmm_ornstein_uhlenbeck <- function(times){
   jacobian_drift <- function(theta, x) c(theta[2] - x, theta[1], 0)
   
   # diffusivity 
+  constant_sigma <- TRUE
   sigma <- 1
   Sigma <- sigma^2
   Omega <- sigma^(-2)
@@ -149,20 +153,13 @@ hmm_ornstein_uhlenbeck <- function(times){
     return(output)
   }
   
+  # compute moments using Kalman smoothing
   smoothing_moments <- function(theta, observations){
     # theta is a vector of size 3
     # observations is a matrix of size nobservations x 1
-    # Remark: Assumes constant step size and N(0,1) initial distribution
     
-    discretization <- construct_discretization(0)
-    # Time steps
-    stepsize <- discretization$stepsize
-    if (abs(max(stepsize) - min(stepsize)) < .Machine$double.eps){
-      # step size constant
-      delta = discretization$stepsize[1]
-    } else {
-      stop("Step size must be constant for smoothing_moments")
-    }
+    # unit step size
+    delta <- 1
     
     ## Compute smoothing distribution via the Kalman filter ##
     
@@ -176,7 +173,6 @@ hmm_ornstein_uhlenbeck <- function(times){
     prior_var <- matrix(0, nrow = nobservations, ncol=nobservations)
     
     for (k in 1:nobservations){
-      
       if (k == 1){
         m_prev <- x_star
         P_prev <- 0
@@ -188,22 +184,12 @@ hmm_ornstein_uhlenbeck <- function(times){
       prior_mean[k] <- theta[2] + (m_prev - theta[2]) * e1
       prior_var[k, k] <- P_prev * e1 ** 2 + var_dyn
       
-      #if (k == 1){
-      #  # Initial distribution
-      #  prior_mean[k] <- x_star
-      #  prior_var[k, k] <- 0
-      #} else {
-      #  # Predicted marginal mean and variance
-      #  prior_mean[k] <- theta[2] + (prior_mean[k-1] - theta[2]) * e1
-      #  prior_var[k, k] <- prior_var[k-1, k-1] * e1 ** 2 + var_dyn
-      
       # Correlations between time steps
       for (l in (k+1):nobservations){
         if (l > nobservations) break
         prior_var[k, l] <- e1 ** (l-k) * prior_var[k, k]
         prior_var[l, k] <- prior_var[k, l]
       }
-      #}
     }
     
     # Observation matrix
@@ -216,24 +202,15 @@ hmm_ornstein_uhlenbeck <- function(times){
     post_mean <- prior_mean + gain %*% innov
     post_var <- (diag(nobservations) - gain %*% H) %*% prior_var
     
-    return(list(post_mean=post_mean, post_var=post_var, prior_mean=prior_mean))
+    return(list(post_mean = post_mean, post_var = post_var, prior_mean = prior_mean))
   }
-  
   
   compute_gradients <- function(theta, observations){
     # theta is a vector of size 3
     # observations is a matrix of size nobservations x 1
-    # Remark: Assumes constant step size and N(0,1) initial distribution
     
-    discretization <- construct_discretization(0)
-    # Time steps
-    stepsize <- discretization$stepsize
-    if (abs(max(stepsize) - min(stepsize)) < .Machine$double.eps){
-      # step size constant
-      delta = discretization$stepsize[1]
-    } else {
-      stop("Step size must be constant for smoothing_moments")
-    }
+    # unit step size
+    delta <- 1
     
     e1 <- exp(- delta * theta[1])
     var_dyn <- sigma ** 2 * (1 - exp(- 2 * delta * theta[1])) / (2 * theta[1])
@@ -279,12 +256,13 @@ hmm_ornstein_uhlenbeck <- function(times){
     return(gradient)
   }
   
-  
   model <- list(xdimension = xdimension,
                 ydimension = ydimension,
                 theta_dimension = theta_dimension,
+                is_discrete_observation = is_discrete_observation,
                 construct_discretization = construct_discretization,
                 construct_successive_discretization = construct_successive_discretization,
+                constant_sigma = constant_sigma,
                 sigma = sigma,
                 rinit = rinit, 
                 rtransition = rtransition, 

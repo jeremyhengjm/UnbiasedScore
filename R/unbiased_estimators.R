@@ -1,283 +1,167 @@
-#' @rdname unbiased_gradient
-#' @title Unbiased estimator of the gradient of the log-likelihood at a discretization level
-#' @description Estimates the expectation of a functional with respect to the smoothing distribution at a discretization level
+#' @rdname compute_level_distribution
+#' @title Compute distribution of levels 
+#' @description Compute distribution of levels using results from Section 4 of Rhee and Glynn (2015) 
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
-#' @param theta a vector of parameters as input to model functions
-#' @param discretization list containing stepsize, nsteps, statelength and obstimes
-#' @param observations a matrix of observations of size terminal_time x ydimension
-#' @param nparticles number of particles
-#' @param resampling_threshold ESS proportion below which resampling is triggered (always resample at observation times by default)
-#' @param coupled_resampling a 2-way coupled resampling scheme, such as \code{\link{coupled2_maximal_coupled_residuals}}
-#' @param k iteration at which to start averaging (default to 0)
-#' @param m iteration at which to stop averaging (default to 1)
-#' @param max_niterations iteration at which to stop the while loop (default to infinity)
+#' @param minimum_level coarsest discretization level 
+#' @param maximum_level finest discretization level 
 #' @return a list with objects such as 
-#' mcmcestimator is the MCMC estimator of the gradient at level
-#' unbiasedestimator is an unbiased estimator of the gradient at level
-#' meetingtime is the meeting time of the two chains at level
-#' iteration is the number of iterations taken
-#' finished indicates if the algorithm has completed successfully
-#' cost is the cost of the algorithm in units of the CPF kernel at current discretization level
-#' elapsedtime is the time taken by the algorithm
+#' support of the level distribution
+#' mass_function is the probability mass function of the level distribution
+#' tail_function is the tail probability function of the level distribution
 #' @export
-unbiased_gradient <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1, coupled_resampling, 
-                              k = 0, m = 1, max_iterations = Inf){
-  # start timer
-  tic()
+compute_level_distribution <- function(model, minimum_level, maximum_level){
   
-  # initialize chains
-  chain_state1 <- CPF(model, theta, discretization, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
-  chain_state2 <- CPF(model, theta, discretization, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
-  
-  # initialize estimators computation
-  mcmcestimator <- model$functional(theta, discretization, chain_state1, observations)
-  theta_dimension <- model$theta_dimension
-  if (k > 0){
-    mcmcestimator <- rep(0, theta_dimension)
+  # compute probability mass function of levels
+  all_levels <- minimum_level:maximum_level
+  num_levels <- length(all_levels)
+  max_stepsize <- rep(0, num_levels)
+  for (l in 1:num_levels){
+    level <- all_levels[l]
+    discretization <- model$construct_discretization(level)
+    max_stepsize[l] <- max(discretization$stepsize)
   }
   
-  # correction computes the sum of min(1, (t - k + 1) / (m - k + 1)) * (h(X_{t+1}) - h(X_t)) for t=k,...,max(m, tau - 1)
-  correction <- rep(0, theta_dimension)
-  chain_state1 <- CPF(model, theta, discretization, observations, nparticles, resampling_threshold, chain_state1)$new_trajectory
-  if (k == 0){
-    correction <- correction + (min(1, (0 - k + 1)/(m - k + 1))) * 
-      (model$functional(theta, discretization, chain_state1, observations) - 
-         model$functional(theta, discretization, chain_state2, observations))
+  pmf_levels <- rep(0, num_levels)
+  if (model$constant_sigma){
+    pmf_levels <- max_stepsize * all_levels * (log2(1 + all_levels))^2
+  } else {
+    pmf_levels <- sqrt(max_stepsize) * all_levels * (log2(1 + all_levels))^2
   }
-  if (k <= 1 && m >= 1){
-    mcmcestimator <- mcmcestimator + model$functional(theta, discretization, chain_state1, observations)
-  }
+  pmf_levels <- pmf_levels / sum(pmf_levels)
+  pmf_tail <- rev(cumsum(rev(pmf_levels)))
   
-  # initialize
-  iter <- 1
-  meet <- FALSE
-  finished <- FALSE
-  meetingtime <- Inf
-  
-  # iter here is 1; at this point we have X_1,Y_0 and we are going to generate successively X_t,Y_{t-1} where iter = t
-  while (!finished && iter < max_iterations){
-    # increment counter
-    iter <- iter + 1
-    # cat(iter, "\n")
-    
-    # sample from 2-way coupled CPF kernel
-    coupled2CPF <- coupled2_CPF(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling, 
-                                chain_state1, chain_state2)
-    chain_state1 <- coupled2CPF$new_trajectory1
-    chain_state2 <- coupled2CPF$new_trajectory2
-    
-    # update gradient estimators
-    if (meet){
-      if (k <= iter && iter <= m){
-        mcmcestimator <- mcmcestimator + model$functional(theta, discretization, chain_state1, observations)
-      }
-    } else {
-      if (k <= iter){
-        if (iter <= m){
-          mcmcestimator <- mcmcestimator + model$functional(theta, discretization, chain_state1, observations)
-        }
-        correction <- correction + (min(1, (iter-1 - k + 1)/(m - k + 1))) * 
-          (model$functional(theta, discretization, chain_state1, observations) - 
-             model$functional(theta, discretization, chain_state2, observations))
-      }
-    }
-    
-    # check if meeting occurs 
-    if (all(chain_state1 == chain_state2) && !meet){
-      meet <- TRUE # recording meeting time tau
-      meetingtime <- iter
-    }
-    
-    # stop after max(m, tau) steps
-    if (iter >= max(meetingtime, m)){
-      finished <- TRUE
-    }
-    
-  }
-  
-  # compute mcmc gradient estimator
-  mcmcestimator <- mcmcestimator / (m - k + 1)
-  
-  # compute unbiased gradient estimator
-  unbiasedestimator <- mcmcestimator + correction
-  
-  # compute cost in units of CPF kernel at current discretization level 
-  cost <- 2 * (meetingtime - 1) + max(1, m + 1 - meetingtime)
-  
-  # end timer and compute elapsed time
-  timer <- toc(quiet = TRUE)
-  elapsedtime <- timer$toc - timer$tic
-  
-  return(list(mcmcestimator = mcmcestimator, unbiasedestimator = unbiasedestimator, 
-              meetingtime = meetingtime, iteration = iter, finished = finished, 
-              cost = cost, elapsedtime = elapsedtime))
+  return(list(support = all_levels, mass_function = pmf_levels, tail_function = pmf_tail))
 }
 
-#' @rdname unbiased_gradient_increment
-#' @title Unbiased estimator of the difference of the gradient of log-likelihood at two successive discretization levels
-#' @description Estimates the difference of the expectation of a functional with respect to the smoothing distribution at two discretization levels
+#' @rdname single_term
+#' @title Unbiased single-term estimator of the score function
+#' @description Estimates the score function using the single-term estimator of Rhee and Glynn (2015)
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
-#' @param discretization lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
-#' and coarsetimes of length statelength_fine indexing time steps of coarse level
 #' @param observations a matrix of observations of size nobservations x ydimension
 #' @param nparticles number of particles
 #' @param resampling_threshold ESS proportion below which resampling is triggered (always resample at observation times by default)
-#' @param coupled_resampling a 4-way coupled resampling scheme, such as \code{\link{coupled4_maximal_coupled_residuals}}
+#' @param coupled2_resampling a 2-marginal coupled resampling scheme, such as \code{\link{coupled2_maximal_independent_residuals}}
+#' @param coupled4_resampling a 4-marginal coupled resampling scheme, such as \code{\link{coupled4_maximalchains_maximallevels_independent_residuals}}
+#' @param initialization choice of distribution to initialize CPF chains, such as \code{dynamics} or the default \code{particlefilter} 
 #' @param k iteration at which to start averaging (default to 0)
 #' @param m iteration at which to stop averaging (default to 1)
-#' @param max_niterations iteration at which to stop the while loop (default to infinity)
+#' @param level_distribution list containing mass_function and tail_function that specify the distribution of levels, 
+#' e.g. by calling \code{\link{compute_level_distribution}} 
 #' @return a list with objects such as 
-#' mcmcestimator_coarse is the MCMC estimator of the gradient at level-1
-#' mcmcestimator_fine is the MCMC estimator of the gradient at level
-#' unbiasedestimator_coarse is an unbiased estimator of the gradient at level-1
-#' unbiasedestimator_fine is an unbiased estimator of the gradient at level
-#' mcmcestimator is the MCMC estimator of the gradient increment between the two discretization levels
-#' unbiasedestimator is an unbiased estimator of the gradient increment between the two discretization levels
-#' meetingtime_coarse is the meeting time of the two chains at level-1
-#' meetingtime_fine is the meeting time of the two chains at level
-#' iteration is the number of iterations taken
-#' finished indicates if the algorithm has completed successfully
-#' cost_coarse is the cost of the algorithm in units of the CPF kernel at coarse discretization level
-#' cost_fine is the cost of the algorithm in units of the CPF kernel at fine discretization level
-#' elapsedtime is the time taken by the algorithm
+#' random_level is the random level to truncated infinite sum 
+#' unbiasedestimator is an unbiased estimator of the gradient of the log-likelihood
+#' cost is the cost to compute the single-term estimator
+#' elapsedtime is the time taken to compute the single-term estimator
 #' @export
-unbiased_gradient_increment <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1, coupled_resampling, 
-                                        k = 0, m = 1, max_iterations = Inf){
+single_term <- function(model, theta, observations, nparticles, resampling_threshold = 1, coupled2_resampling, coupled4_resampling, 
+                        initialization = "particlefilter", k = 0, m = 1, level_distribution){
   
   # start timer
   tic()
   
-  # initialize chains
-  chain_state_coarse1 <- CPF(model, theta, discretization$coarse, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
-  chain_state_coarse2 <- CPF(model, theta, discretization$coarse, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
-  chain_state_fine1 <- CPF(model, theta, discretization$fine, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
-  chain_state_fine2 <- CPF(model, theta, discretization$fine, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
+  # sample random level 
+  random_level <- sample(x = level_distribution$support, size = 1, 
+                         prob = level_distribution$mass_function)
+  # minimum level 
+  minimum_level <- min(level_distribution$support)
   
-  # initialize coarse and fine estimators computation
-  mcmcestimator_coarse <- model$functional(theta, discretization$coarse, chain_state_coarse1, observations)
-  mcmcestimator_fine <- model$functional(theta, discretization$fine, chain_state_fine1, observations)
-  theta_dimension <- model$theta_dimension
-  if (k > 0){
-    mcmcestimator_coarse <- rep(0, theta_dimension)
-    mcmcestimator_fine <- rep(0, theta_dimension)
-  }
-  
-  # correction computes the sum of min(1, (t - k + 1) / (m - k + 1)) * (h(X_{t+1}) - h(X_t)) for t=k,...,max(m, tau - 1)
-  correction_coarse <- rep(0, theta_dimension)
-  correction_fine <- rep(0, theta_dimension)
-  chain_state_coarse1 <- CPF(model, theta, discretization$coarse, observations, nparticles, resampling_threshold, chain_state_coarse1)$new_trajectory
-  chain_state_fine1 <- CPF(model, theta, discretization$fine, observations, nparticles, resampling_threshold, chain_state_fine1)$new_trajectory
-  if (k == 0){
-    correction_coarse <- correction_coarse + (min(1, (0 - k + 1)/(m - k + 1))) *
-      (model$functional(theta, discretization$coarse, chain_state_coarse1, observations) - 
-         model$functional(theta, discretization$coarse, chain_state_coarse2, observations))
-    correction_fine <- correction_fine + (min(1, (0 - k + 1)/(m - k + 1))) * 
-      (model$functional(theta, discretization$fine, chain_state_fine1, observations) - 
-         model$functional(theta, discretization$fine, chain_state_fine2, observations))
-  }
-  if (k <= 1 && m >= 1){
-    mcmcestimator_coarse <- mcmcestimator_coarse + model$functional(theta, discretization$coarse, chain_state_coarse1, observations)
-    mcmcestimator_fine <- mcmcestimator_fine + model$functional(theta, discretization$fine, chain_state_fine1, observations)
-  }
-  
-  # initialize
-  iter <- 1
-  meet_coarse <- FALSE
-  meet_fine <- FALSE
-  finished <- FALSE
-  meetingtime_coarse <- Inf
-  meetingtime_fine <- Inf
-  
-  # iter here is 1; at this point we have X_1,Y_0 and we are going to generate successively X_t,Y_{t-1} where iter = t
-  while (!finished && iter < max_iterations){
-    # increment counter
-    iter <- iter + 1
+  if (random_level == minimum_level){
     
-    # sample from 4-way coupled CPF kernel
-    coupled4CPF <- coupled4_CPF(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling,
-                                chain_state_coarse1, chain_state_coarse2,
-                                chain_state_fine1, chain_state_fine2)
-    chain_state_coarse1 <- coupled4CPF$new_trajectory_coarse1
-    chain_state_coarse2 <- coupled4CPF$new_trajectory_coarse2
-    chain_state_fine1 <- coupled4CPF$new_trajectory_fine1
-    chain_state_fine2 <- coupled4CPF$new_trajectory_fine2
+    # compute score at coarsest discretization level
+    discretization <- model$construct_discretization(minimum_level)
+    score <- unbiased_discretized_score(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling, 
+                                           initialization, k = k, m = m, max_iterations = Inf)
+    estimator <- score$unbiasedestimator / level_distribution$mass_function[1]
+    cost <- nparticles * discretization$nsteps * score$cost 
     
-    # update gradient estimators for coarse discretization level
-    if (meet_coarse){
-      if (k <= iter && iter <= m){
-        mcmcestimator_coarse <- mcmcestimator_coarse + model$functional(theta, discretization$coarse, chain_state_coarse1, observations)
-      }
-    } else {
-      if (k <= iter){
-        if (iter <= m){
-          mcmcestimator_coarse <- mcmcestimator_coarse + model$functional(theta, discretization$coarse, chain_state_coarse1, observations)
-        }
-        correction_coarse <- correction_coarse + (min(1, (iter-1 - k + 1)/(m - k + 1))) * 
-          (model$functional(theta, discretization$coarse, chain_state_coarse1, observations) - 
-             model$functional(theta, discretization$coarse, chain_state_coarse2, observations))
-      }
-    }
+  } else {
     
-    # update gradient estimators for fine discretization level
-    if (meet_fine){
-      if (k <= iter && iter <= m){
-        mcmcestimator_fine <- mcmcestimator_fine + model$functional(theta, discretization$fine, chain_state_fine1, observations)
-      }
-    } else {
-      if (k <= iter){
-        if (iter <= m){
-          mcmcestimator_fine <- mcmcestimator_fine + model$functional(theta, discretization$fine, chain_state_fine1, observations)
-        }
-        correction_fine <- correction_fine + (min(1, (iter-1 - k + 1)/(m - k + 1))) * 
-          (model$functional(theta, discretization$fine, chain_state_fine1, observations) - 
-             model$functional(theta, discretization$fine, chain_state_fine2, observations))
-      }
-    }
-    
-    # check if meeting occurs for coarse discretization level
-    if (all(chain_state_coarse1 == chain_state_coarse2) && !meet_coarse){
-      meet_coarse <- TRUE # recording meeting time tau_coarse
-      meetingtime_coarse <- iter
-    }
-    
-    # check if meeting occurs for fine discretization level
-    if (all(chain_state_fine1 == chain_state_fine2) && !meet_fine){
-      meet_fine <- TRUE # recording meeting time tau_fine
-      meetingtime_fine <- iter
-    }
-    
-    # stop after max(m, tau_coarse, tau_fine) steps
-    if (iter >= max(meetingtime_coarse, meetingtime_fine, m)){
-      finished <- TRUE
-    }
+    # compute score increment at random level
+    discretization <- model$construct_successive_discretization(random_level)
+    score_increment <- unbiased_score_increment(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling, coupled4_resampling, 
+                                                   initialization, k = k, m = m, max_iterations = Inf)
+    increment <- score_increment$unbiasedestimator
+    estimator <- increment / level_distribution$mass_function[random_level-minimum_level+1]
+    cost <- nparticles * discretization$coarse$nsteps * score_increment$cost_coarse
+    cost <- cost + nparticles * discretization$fine$nsteps * score_increment$cost_fine
     
   }
-  
-  # compute mcmc gradient estimators and their difference 
-  mcmcestimator_coarse <- mcmcestimator_coarse / (m - k + 1)
-  mcmcestimator_fine <- mcmcestimator_fine / (m - k + 1)
-  mcmcestimator <- mcmcestimator_fine - mcmcestimator_coarse
-  
-  # compute unbiased gradient estimators and their difference
-  unbiasedestimator_coarse <- mcmcestimator_coarse + correction_coarse
-  unbiasedestimator_fine <- mcmcestimator_fine + correction_fine
-  unbiasedestimator <- unbiasedestimator_fine - unbiasedestimator_coarse 
-  
-  # compute cost in units of CPF kernel at current discretization level 
-  cost_coarse <- 2 * (meetingtime_coarse - 1) + max(1, m + 1 - meetingtime_coarse)
-  cost_fine <- 2 * (meetingtime_fine - 1) + max(1, m + 1 - meetingtime_fine)
   
   # end timer and compute elapsed time
   timer <- toc(quiet = TRUE)
   elapsedtime <- timer$toc - timer$tic
   
-  return(list(mcmcestimator_coarse = mcmcestimator_coarse, mcmcestimator_fine = mcmcestimator_fine, 
-              unbiasedestimator_coarse = unbiasedestimator_coarse, unbiasedestimator_fine = unbiasedestimator_fine, 
-              mcmcestimator = mcmcestimator, unbiasedestimator = unbiasedestimator, 
-              meetingtime_coarse = meetingtime_coarse, meetingtime_fine = meetingtime_fine, 
-              iteration = iter, finished = finished, 
-              cost_coarse = cost_coarse, cost_fine = cost_fine, elapsedtime = elapsedtime))
+  return(list(random_level = random_level, unbiasedestimator = estimator, 
+              cost = cost, elapsedtime = elapsedtime))
+  
 }
 
+#' @rdname independent_sum
+#' @title Unbiased independent-sum estimator of the score function
+#' @description Estimates the score function using the independent-sum estimator of Rhee and Glynn (2015)
+#' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
+#' @param theta a vector of parameters as input to model functions
+#' @param observations a matrix of observations of size nobservations x ydimension
+#' @param nparticles number of particles
+#' @param resampling_threshold ESS proportion below which resampling is triggered (always resample at observation times by default)
+#' @param coupled2_resampling a 2-marginal coupled resampling scheme, such as \code{\link{coupled2_maximal_independent_residuals}}
+#' @param coupled4_resampling a 4-marginalk coupled resampling scheme, such as \code{\link{coupled4_maximalchains_maximallevels_independent_residuals}}
+#' @param initialization choice of distribution to initialize CPF chains, such as \code{dynamics} or the default \code{particlefilter} 
+#' @param k iteration at which to start averaging (default to 0)
+#' @param m iteration at which to stop averaging (default to 1)
+#' @param level_distribution list containing mass_function and tail_function that specify the distribution of levels, 
+#' e.g. by calling \code{\link{compute_level_distribution}} 
+#' @return a list with objects such as 
+#' random_level is the random level to truncated infinite sum 
+#' unbiasedestimator is an unbiased estimator of the gradient of the log-likelihood
+#' cost is the cost to compute the independent-sum estimator
+#' elapsedtime is the time taken to compute the independent-sum estimator
+#' @export
+independent_sum <- function(model, theta, observations, nparticles, resampling_threshold = 1, coupled2_resampling, coupled4_resampling, 
+                            initialization = "particlefilter", k = 0, m = 1, level_distribution){
+  
+  # start timer
+  tic()
+  
+  # minimum level 
+  minimum_level <- min(level_distribution$support)
+  
+  # initialize estimate by computing gradient at coarsest discretization level
+  discretization <- model$construct_discretization(minimum_level)
+  cat("running minimum level", "\n")
+  score <- unbiased_discretized_score(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling, 
+                                      initialization, k = k, m = m, max_iterations = Inf)
+  cat("minimum level completed", "\n")
+  estimator <- score$unbiasedestimator
+  cost <- nparticles * discretization$nsteps * score$cost 
+  
+  # sample random level to truncated infinite sum
+  all_levels <- minimum_level:maximum_level
+  random_level <- sample(x = level_distribution$support, size = 1, prob = level_distribution$mass_function)
+  cat("random level:", random_level, "\n")
+  
+  # increment estimate by computing the difference of the gradient at two successive discretization levels
+  if (random_level > minimum_level){
+    for (level in (minimum_level+1):random_level){
+      cat("running level", level, "\n")
+      discretization <- model$construct_successive_discretization(level)
+      score_increment <- unbiased_score_increment(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling, coupled4_resampling, 
+                                                  initialization, k = k, m = m, max_iterations = Inf)
+      cat("completed", "\n")
+      cost <- cost + nparticles * discretization$coarse$nsteps * score_increment$cost_coarse
+      cost <- cost + nparticles * discretization$fine$nsteps * score_increment$cost_fine
+      increment <- score_increment$unbiasedestimator
+      estimator <- estimator + increment / level_distribution$tail_function[level-minimum_level+1]
+    }
+  }
+  
+  # end timer and compute elapsed time
+  timer <- toc(quiet = TRUE)
+  elapsedtime <- timer$toc - timer$tic
+  
+  return(list(random_level = random_level, unbiasedestimator = estimator, 
+              cost = cost, elapsedtime = elapsedtime))
+  
+}
 

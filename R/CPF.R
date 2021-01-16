@@ -14,7 +14,7 @@
 #'@return a matrix containing a new trajectory of size xdimension x statelength
 #'@export
 CPF <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1,
-                ref_trajectory = NULL, treestorage = FALSE, tempering = 1){
+                ref_trajectory = NULL, treestorage = FALSE){
   
   # get model/problem settings 
   nobservations <- nrow(observations)
@@ -51,15 +51,16 @@ CPF <- function(model, theta, discretization, observations, nparticles, resampli
   log_ratio_normconst <- 0
   log_normconst_previous <- 0 # log normalizing constant at previous resampling time
   log_normconst <- rep(0, nobservations)
-  index_obs <- 0 
+  index_obs <- 0
   ancestors <- 1:nparticles
+  last_obs <- 1 # index last observation
   
-  # random initialization
+  # random initialization (only for discrete observations)
   if (obstimes[1]){
     # compute weights
     index_obs <- index_obs + 1 
     observation <- observations[index_obs, ] # 1 x ydimension 
-    logweights <- model$dmeasurement(theta, stepsize[1], xparticles, observation) * tempering
+    logweights <- model$dmeasurement(theta, stepsize[1], xparticles, observation)
     maxlogweights <- max(logweights)
     weights <- exp(logweights - maxlogweights)
     normweights <- weights / sum(weights)
@@ -80,17 +81,15 @@ CPF <- function(model, theta, discretization, observations, nparticles, resampli
   }
   
   for (k in 1:nsteps){
-    
     # propagate under latent dynamics
     randn <- matrix(rnorm(xdimension * nparticles), nrow = xdimension, ncol = nparticles) # size: xdimension x nparticles
-    # randn <- matrix(Rfast::Rnorm(xdimension * nparticles), nrow = xdimension, ncol = nparticles) # size: xdimension x nparticles
     xparticles <- model$rtransition(theta, stepsize[k], xparticles, randn) # size: xdimension x nparticles
     if (!is.null(ref_trajectory)){
       xparticles[, nparticles] <- ref_trajectory[, k+1]
       ancestors[nparticles] <- nparticles
     }
     
-    # update tree storage
+    # update path storage
     if (treestorage){
       Tree$update(xparticles, ancestors - 1)    
     } else {
@@ -103,7 +102,19 @@ CPF <- function(model, theta, discretization, observations, nparticles, resampli
       # compute weights
       index_obs <- index_obs + 1 
       observation <- observations[index_obs, ] # 1 x ydimension 
-      logweights <- logweights + model$dmeasurement(theta, stepsize[k], xparticles, observation) * tempering
+      
+      if (model$is_discrete_observation){
+        # observation only depends on current particles in a discrete model
+        logweights <- logweights + model$dmeasurement(theta, stepsize[k], xparticles, observation)
+        
+      } else {
+        # observation depends on inter-observation states
+        x_sub_trajectory <- array(0, dim = c(k-last_obs+1, xdimension, nparticles))
+        x_sub_trajectory[ , , ] <- xtrajectory[last_obs:k, , ]
+        logweights <- logweights + model$dmeasurement(theta, stepsize[k], x_sub_trajectory, observation) 
+        
+      }
+      last_obs <- k+1 # index last observation
       maxlogweights <- max(logweights)
       weights <- exp(logweights - maxlogweights)
       normweights <- weights / sum(weights)

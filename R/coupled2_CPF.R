@@ -1,5 +1,5 @@
 #' @rdname coupled2_CPF
-#' @title 2-way Coupled Conditional Particle Filter
+#' @title 2-Coupled Conditional Particle Filter
 #' @description Runs two coupled conditional particle filters (at each discretization level)
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
@@ -7,7 +7,7 @@
 #' @param observations a matrix of observations, of size nobservations x ydimension
 #' @param nparticles number of particles
 #' @param resampling_threshold ESS proportion below which resampling is triggered (always resample at observation times by default)
-#' @param coupled_resampling a 2-way coupled resampling scheme, such as \code{\link{coupled2_maximal_coupled_residuals}}
+#' @param coupled_resampling a 2-marginal coupled resampling scheme, such as \code{\link{coupled2_maximal_independent_residuals}}
 #' @param ref_trajectory1 a matrix of first reference trajectory, of size xdimension x statelength
 #' @param ref_trajectory2 a matrix of second reference trajectory, of size xdimension x statelength
 #' @param treestorage logical specifying tree storage of Jacob, Murray and Rubenthaler (2013);
@@ -78,6 +78,9 @@ coupled2_CPF <- function(model, theta, discretization, observations, nparticles,
   index_obs <- 0
   ancestors1 <- 1:nparticles
   ancestors2 <- 1:nparticles
+  
+  # index last observation
+  last_obs <- 1
   
   # random initialization
   if (obstimes[1]){
@@ -156,13 +159,34 @@ coupled2_CPF <- function(model, theta, discretization, observations, nparticles,
       # compute weights
       index_obs <- index_obs + 1 
       observation <- observations[index_obs, ] # 1 x ydimension 
-      if (meet){
-        logweights1 <- logweights1 + model$dmeasurement(theta, stepsize[k], xparticles1, observation)
-        logweights2 <- logweights1
+      
+      if (model$is_discrete_observation){
+        # observation only depends on current particles in a discrete model
+        if (meet){
+          logweights1 <- logweights1 + model$dmeasurement(theta, stepsize[k], xparticles1, observation)
+          logweights2 <- logweights1
+        } else {
+          logweights1 <- logweights1 + model$dmeasurement(theta, stepsize[k], xparticles1, observation)
+          logweights2 <- logweights2 + model$dmeasurement(theta, stepsize[k], xparticles2, observation)
+        }
+        
       } else {
-        logweights1 <- logweights1 + model$dmeasurement(theta, stepsize[k], xparticles1, observation)
-        logweights2 <- logweights2 + model$dmeasurement(theta, stepsize[k], xparticles2, observation)
+        # observation depends on inter-observation states
+        x_sub_trajectory1 <- array(0, dim = c(k-last_obs+1, xdimension, nparticles))
+        x_sub_trajectory1[ , , ] <- xtrajectory1[last_obs:k, , ]
+        
+        if (meet){
+          logweights1 <- logweights1 + model$dmeasurement(theta, stepsize[k], x_sub_trajectory1, observation)
+          logweights2 <- logweights1
+        } else {
+          x_sub_trajectory2 <- array(0, dim = c(k-last_obs+1, xdimension, nparticles))
+          x_sub_trajectory2[ , , ] <- xtrajectory2[last_obs:k, , ]
+          logweights1 <- logweights1 + model$dmeasurement(theta, stepsize[k], x_sub_trajectory1, observation)
+          logweights2 <- logweights2 + model$dmeasurement(theta, stepsize[k], x_sub_trajectory2, observation)
+        }
       }
+      
+      last_obs <- k+1 # index last observation
       maxlogweights1 <- max(logweights1)
       maxlogweights2 <- max(logweights2)
       weights1 <- exp(logweights1 - maxlogweights1)

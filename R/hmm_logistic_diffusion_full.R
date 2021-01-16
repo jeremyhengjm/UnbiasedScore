@@ -24,6 +24,8 @@ hmm_logistic_diffusion_full <- function(times){
   # parameters of the model
   theta_dimension <- 4 # inferring diffusivity parameter
   
+  is_discrete_observation <- T
+  
   # time intervals
   time_intervals <- diff(times)
   nintervals <- length(time_intervals)
@@ -126,6 +128,7 @@ hmm_logistic_diffusion_full <- function(times){
                                          0)
   
   # diffusivity 
+  constant_sigma <- TRUE
   sigma <- 1
   Sigma <- 1
   Omega <- 1
@@ -236,8 +239,10 @@ hmm_logistic_diffusion_full <- function(times){
   model <- list(xdimension = xdimension,
                 ydimension = ydimension,
                 theta_dimension = theta_dimension,
+                is_discrete_observation = is_discrete_observation,
                 construct_discretization = construct_discretization,
                 construct_successive_discretization = construct_successive_discretization,
+                constant_sigma = constant_sigma,
                 sigma = sigma,
                 rinit = rinit, 
                 rtransition = rtransition, 
