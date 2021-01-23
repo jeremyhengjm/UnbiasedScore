@@ -43,7 +43,11 @@ compute_level_distribution <- function(model, minimum_level, maximum_level){
 #' @param resampling_threshold ESS proportion below which resampling is triggered (always resample at observation times by default)
 #' @param coupled2_resampling a 2-marginal coupled resampling scheme, such as \code{\link{coupled2_maximal_independent_residuals}}
 #' @param coupled4_resampling a 4-marginal coupled resampling scheme, such as \code{\link{coupled4_maximalchains_maximallevels_independent_residuals}}
-#' @param initialization choice of distribution to initialize CPF chains, such as \code{dynamics} or the default \code{particlefilter} 
+#' @param initialization choice of distribution to initialize chains, such as \code{dynamics} or the default \code{particlefilter} 
+#' @param algorithm character specifying type of algorithm desired, i.e. 
+#' \code{\link{CPF}} for conditional particle filter, 
+#' \code{\link{CASPF}} for conditional ancestor sampling particle filter,
+#' \code{\link{CBSPF}} for conditional backward sampling particle filter
 #' @param k iteration at which to start averaging (default to 0)
 #' @param m iteration at which to stop averaging (default to 1)
 #' @param level_distribution list containing mass_function and tail_function that specify the distribution of levels, 
@@ -55,7 +59,7 @@ compute_level_distribution <- function(model, minimum_level, maximum_level){
 #' elapsedtime is the time taken to compute the single-term estimator
 #' @export
 single_term <- function(model, theta, observations, nparticles, resampling_threshold = 1, coupled2_resampling, coupled4_resampling, 
-                        initialization = "particlefilter", k = 0, m = 1, level_distribution){
+                        initialization = "particlefilter", algorithm = "CPF", k = 0, m = 1, level_distribution){
   
   # start timer
   tic()
@@ -71,7 +75,7 @@ single_term <- function(model, theta, observations, nparticles, resampling_thres
     # compute score at coarsest discretization level
     discretization <- model$construct_discretization(minimum_level)
     score <- unbiased_discretized_score(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling, 
-                                           initialization, k = k, m = m, max_iterations = Inf)
+                                        initialization, algorithm, k = k, m = m, max_iterations = Inf)
     estimator <- score$unbiasedestimator / level_distribution$mass_function[1]
     cost <- nparticles * discretization$nsteps * score$cost 
     
@@ -80,7 +84,7 @@ single_term <- function(model, theta, observations, nparticles, resampling_thres
     # compute score increment at random level
     discretization <- model$construct_successive_discretization(random_level)
     score_increment <- unbiased_score_increment(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling, coupled4_resampling, 
-                                                   initialization, k = k, m = m, max_iterations = Inf)
+                                                initialization, algorithm, k = k, m = m, max_iterations = Inf)
     increment <- score_increment$unbiasedestimator
     estimator <- increment / level_distribution$mass_function[random_level-minimum_level+1]
     cost <- nparticles * discretization$coarse$nsteps * score_increment$cost_coarse
@@ -106,8 +110,12 @@ single_term <- function(model, theta, observations, nparticles, resampling_thres
 #' @param nparticles number of particles
 #' @param resampling_threshold ESS proportion below which resampling is triggered (always resample at observation times by default)
 #' @param coupled2_resampling a 2-marginal coupled resampling scheme, such as \code{\link{coupled2_maximal_independent_residuals}}
-#' @param coupled4_resampling a 4-marginalk coupled resampling scheme, such as \code{\link{coupled4_maximalchains_maximallevels_independent_residuals}}
-#' @param initialization choice of distribution to initialize CPF chains, such as \code{dynamics} or the default \code{particlefilter} 
+#' @param coupled4_resampling a 4-marginal coupled resampling scheme, such as \code{\link{coupled4_maximalchains_maximallevels_independent_residuals}}
+#' @param initialization choice of distribution to initialize chains, such as \code{dynamics} or the default \code{particlefilter} 
+#' @param algorithm character specifying type of algorithm desired, i.e. 
+#' \code{\link{CPF}} for conditional particle filter, 
+#' \code{\link{CASPF}} for conditional ancestor sampling particle filter,
+#' \code{\link{CBSPF}} for conditional backward sampling particle filter
 #' @param k iteration at which to start averaging (default to 0)
 #' @param m iteration at which to stop averaging (default to 1)
 #' @param level_distribution list containing mass_function and tail_function that specify the distribution of levels, 
@@ -119,7 +127,7 @@ single_term <- function(model, theta, observations, nparticles, resampling_thres
 #' elapsedtime is the time taken to compute the independent-sum estimator
 #' @export
 independent_sum <- function(model, theta, observations, nparticles, resampling_threshold = 1, coupled2_resampling, coupled4_resampling, 
-                            initialization = "particlefilter", k = 0, m = 1, level_distribution){
+                            initialization = "particlefilter", algorithm = "CPF", k = 0, m = 1, level_distribution){
   
   # start timer
   tic()
@@ -131,7 +139,7 @@ independent_sum <- function(model, theta, observations, nparticles, resampling_t
   discretization <- model$construct_discretization(minimum_level)
   cat("running minimum level", "\n")
   score <- unbiased_discretized_score(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling, 
-                                      initialization, k = k, m = m, max_iterations = Inf)
+                                      initialization, algorithm, k = k, m = m, max_iterations = Inf)
   cat("minimum level completed", "\n")
   estimator <- score$unbiasedestimator
   cost <- nparticles * discretization$nsteps * score$cost 
@@ -147,7 +155,7 @@ independent_sum <- function(model, theta, observations, nparticles, resampling_t
       cat("running level", level, "\n")
       discretization <- model$construct_successive_discretization(level)
       score_increment <- unbiased_score_increment(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling, coupled4_resampling, 
-                                                  initialization, k = k, m = m, max_iterations = Inf)
+                                                  initialization, algorithm, k = k, m = m, max_iterations = Inf)
       cat("completed", "\n")
       cost <- cost + nparticles * discretization$coarse$nsteps * score_increment$cost_coarse
       cost <- cost + nparticles * discretization$fine$nsteps * score_increment$cost_fine

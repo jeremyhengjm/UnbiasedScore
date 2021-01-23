@@ -63,14 +63,12 @@ coupled2_CBSPF <- function(model, theta, discretization, observations, nparticle
     if (meet){
       logweights1 <- model$dmeasurement(theta, stepsize[1], xparticles1, observation)
       logweights2 <- logweights1
-      store_logweights1[index_obs, ] <- logweights1
-      store_logweights2[index_obs, ] <- logweights2
     } else {
       logweights1 <- model$dmeasurement(theta, stepsize[1], xparticles1, observation)
       logweights2 <- model$dmeasurement(theta, stepsize[1], xparticles2, observation)
-      store_logweights1[index_obs, ] <- logweights1
-      store_logweights2[index_obs, ] <- logweights2
     }
+    store_logweights1[index_obs, ] <- logweights1
+    store_logweights2[index_obs, ] <- logweights2
     maxlogweights1 <- max(logweights1)
     maxlogweights2 <- max(logweights2)
     weights1 <- exp(logweights1 - maxlogweights1)
@@ -210,13 +208,13 @@ coupled2_CBSPF <- function(model, theta, discretization, observations, nparticle
   for (k in nsteps:1){
     if (obstimes[k]){
       logweights1 <- store_logweights1[index_obs, ]
-      bs_logweights1 <- logweights1 + model$dtransition(theta, stepsize[k], xtrajectory1[k, , ], ref_trajectory1[, k+1])
+      bs_logweights1 <- logweights1 + model$dtransition(theta, stepsize[k], xtrajectory1[k, , ], new_trajectory1[, k+1])
       bs_maxlogweights1 <- max(bs_logweights1)
       bs_weights1 <- exp(bs_logweights1 - bs_maxlogweights1)
       bs_normweights1 <- bs_weights1 / sum(bs_weights1)
 
       logweights2 <- store_logweights2[index_obs, ]
-      bs_logweights2 <- logweights2 + model$dtransition(theta, stepsize[k], xtrajectory2[k, , ], ref_trajectory2[, k+1])
+      bs_logweights2 <- logweights2 + model$dtransition(theta, stepsize[k], xtrajectory2[k, , ], new_trajectory2[, k+1])
       bs_maxlogweights2 <- max(bs_logweights2)
       bs_weights2 <- exp(bs_logweights2 - bs_maxlogweights2)
       bs_normweights2 <- bs_weights2 / sum(bs_weights2)

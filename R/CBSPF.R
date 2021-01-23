@@ -75,7 +75,7 @@ CBSPF <- function(model, theta, discretization, observations, nparticles, resamp
     # randn <- matrix(Rfast::Rnorm(xdimension * nparticles), nrow = xdimension, ncol = nparticles) # size: xdimension x nparticles
     xparticles <- model$rtransition(theta, stepsize[k], xparticles, randn) # size: xdimension x nparticles
     xparticles[, nparticles] <- ref_trajectory[, k+1] 
-    ancestors[nparticles] <- ancestor
+    ancestors[nparticles] <- nparticles
     
     # update tree storage
     xtrajectory[k+1, , ] <- xparticles
@@ -141,7 +141,7 @@ CBSPF <- function(model, theta, discretization, observations, nparticles, resamp
   for (k in nsteps:1){
     if (obstimes[k]){
       logweights <- store_logweights[index_obs, ]
-      bs_logweights <- logweights + model$dtransition(theta, stepsize[k], xtrajectory[k, , ], ref_trajectory[, k+1])
+      bs_logweights <- logweights + model$dtransition(theta, stepsize[k], xtrajectory[k, , ], new_trajectory[, k+1])
       bs_maxlogweights <- max(bs_logweights)
       bs_weights <- exp(bs_logweights - bs_maxlogweights)
       bs_normweights <- bs_weights / sum(bs_weights)

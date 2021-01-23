@@ -413,8 +413,8 @@ coupled4_CASPF <- function(model, theta, discretization, observations, nparticle
         as_normweights_fine1 <- as_weights_fine1 / sum(as_weights_fine1)
         as_normweights_fine2 <- as_weights_fine2 / sum(as_weights_fine2)
         
-        as_logweights_coarse1 <- logweights_coarse1 + model$dtransition(theta, stepsize_coarse[k+1], xparticles_coarse1, ref_trajectory_coarse1[, k+2])
-        as_logweights_coarse2 <- logweights_coarse2 + model$dtransition(theta, stepsize_coarse[k+1], xparticles_coarse2, ref_trajectory_coarse2[, k+2])
+        as_logweights_coarse1 <- logweights_coarse1 + model$dtransition(theta, stepsize_coarse[index_coarse+1], xparticles_coarse1, ref_trajectory_coarse1[, index_coarse+2])
+        as_logweights_coarse2 <- logweights_coarse2 + model$dtransition(theta, stepsize_coarse[index_coarse+1], xparticles_coarse2, ref_trajectory_coarse2[, index_coarse+2])
         as_maxlogweights_coarse1 <- max(as_logweights_coarse1)
         as_maxlogweights_coarse2 <- max(as_logweights_coarse2)
         as_weights_coarse1 <- exp(as_logweights_coarse1 - as_maxlogweights_coarse1)
