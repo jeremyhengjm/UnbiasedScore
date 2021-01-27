@@ -9,7 +9,7 @@
 #' mass_function is the probability mass function of the level distribution
 #' tail_function is the tail probability function of the level distribution
 #' @export
-compute_level_distribution <- function(model, minimum_level, maximum_level = 50, regular_stepsizes = TRUE){
+compute_level_distribution <- function(model, minimum_level, maximum_level = 16, regular_stepsizes = TRUE){
   
   # compute probability mass function of levels
   all_levels <- minimum_level:maximum_level
