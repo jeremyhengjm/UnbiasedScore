@@ -9,16 +9,15 @@
 #' mass_function is the probability mass function of the level distribution
 #' tail_function is the tail probability function of the level distribution
 #' @export
-compute_level_distribution <- function(model, minimum_level, maximum_level){
+compute_level_distribution <- function(model, minimum_level, maximum_level = 50, regular_stepsizes = TRUE){
   
   # compute probability mass function of levels
   all_levels <- minimum_level:maximum_level
   num_levels <- length(all_levels)
-  max_stepsize <- rep(0, num_levels)
-  for (l in 1:num_levels){
-    level <- all_levels[l]
-    discretization <- model$construct_discretization(level)
-    max_stepsize[l] <- max(discretization$stepsize)
+  if (regular_stepsizes){
+    max_stepsize <- 2^(-all_levels)
+  } else {
+    max_stepsize <- model$min_interval * 2^(-all_levels)
   }
   
   pmf_levels <- rep(0, num_levels)
@@ -145,7 +144,6 @@ independent_sum <- function(model, theta, observations, nparticles, resampling_t
   cost <- nparticles * discretization$nsteps * score$cost 
   
   # sample random level to truncated infinite sum
-  all_levels <- minimum_level:maximum_level
   random_level <- sample(x = level_distribution$support, size = 1, prob = level_distribution$mass_function)
   cat("random level:", random_level, "\n")
   

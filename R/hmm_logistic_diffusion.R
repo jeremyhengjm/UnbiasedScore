@@ -228,7 +228,8 @@ hmm_logistic_diffusion <- function(times, sigma0){
                 rtransition = rtransition, 
                 dtransition = dtransition, 
                 dmeasurement = dmeasurement,
-                functional = functional)
+                functional = functional, 
+                min_interval = min_interval)
   return(model)
   
 }
