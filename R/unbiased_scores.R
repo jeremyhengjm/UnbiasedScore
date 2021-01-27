@@ -15,10 +15,10 @@
 #' \code{\link{CBSPF}} for conditional backward sampling particle filter
 #' @param k iteration at which to start averaging (default to 0)
 #' @param m iteration at which to stop averaging (default to 1)
-#' @param max_niterations iteration at which to stop the while loop (default to infinity)
+#' @param max_iterations iteration at which to stop the while loop (default to infinity)
 #' @return a list with objects such as 
-#' mcmcestimator is the MCMC estimator of the gradient at level
-#' unbiasedestimator is an unbiased estimator of the gradient at level
+#' mcmcestimator is the MCMC estimator of the discretized score 
+#' unbiasedestimator is an unbiased estimator of the discretized score 
 #' meetingtime is the meeting time of the two chains at level
 #' iteration is the number of iterations taken
 #' finished indicates if the algorithm has completed successfully
@@ -142,14 +142,14 @@ unbiased_discretized_score <- function(model, theta, discretization, observation
 #' \code{\link{CBSPF}} for conditional backward sampling particle filter
 #' @param k iteration at which to start averaging (default to 0)
 #' @param m iteration at which to stop averaging (default to 1)
-#' @param max_niterations iteration at which to stop the while loop (default to infinity)
+#' @param max_iterations iteration at which to stop the while loop (default to infinity)
 #' @return a list with objects such as 
-#' mcmcestimator_coarse is the MCMC estimator of the gradient at level-1
-#' mcmcestimator_fine is the MCMC estimator of the gradient at level
-#' unbiasedestimator_coarse is an unbiased estimator of the gradient at level-1
-#' unbiasedestimator_fine is an unbiased estimator of the gradient at level
-#' mcmcestimator is the MCMC estimator of the gradient increment between the two discretization levels
-#' unbiasedestimator is an unbiased estimator of the gradient increment between the two discretization levels
+#' mcmcestimator_coarse is the MCMC estimator of the score at level-1
+#' mcmcestimator_fine is the MCMC estimator of the score at level
+#' unbiasedestimator_coarse is an unbiased estimator of the score at level-1
+#' unbiasedestimator_fine is an unbiased estimator of the score at level
+#' mcmcestimator is the MCMC estimator of the score increment between the two discretization levels
+#' unbiasedestimator is an unbiased estimator of the score increment between the two discretization levels
 #' meetingtime_coarse is the meeting time of the two chains at level-1
 #' meetingtime_fine is the meeting time of the two chains at level
 #' iteration is the number of iterations taken
