@@ -49,16 +49,16 @@ and coarsetimes of length statelength_fine indexing time steps of coarse level}
 
 \item{m}{iteration at which to stop averaging (default to 1)}
 
-\item{max_niterations}{iteration at which to stop the while loop (default to infinity)}
+\item{max_iterations}{iteration at which to stop the while loop (default to infinity)}
 }
 \value{
 a list with objects such as 
-mcmcestimator_coarse is the MCMC estimator of the gradient at level-1
-mcmcestimator_fine is the MCMC estimator of the gradient at level
-unbiasedestimator_coarse is an unbiased estimator of the gradient at level-1
-unbiasedestimator_fine is an unbiased estimator of the gradient at level
-mcmcestimator is the MCMC estimator of the gradient increment between the two discretization levels
-unbiasedestimator is an unbiased estimator of the gradient increment between the two discretization levels
+mcmcestimator_coarse is the MCMC estimator of the score at level-1
+mcmcestimator_fine is the MCMC estimator of the score at level
+unbiasedestimator_coarse is an unbiased estimator of the score at level-1
+unbiasedestimator_fine is an unbiased estimator of the score at level
+mcmcestimator is the MCMC estimator of the score increment between the two discretization levels
+unbiasedestimator is an unbiased estimator of the score increment between the two discretization levels
 meetingtime_coarse is the meeting time of the two chains at level-1
 meetingtime_fine is the meeting time of the two chains at level
 iteration is the number of iterations taken

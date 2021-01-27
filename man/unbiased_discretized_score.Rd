@@ -45,12 +45,12 @@ unbiased_discretized_score(
 
 \item{m}{iteration at which to stop averaging (default to 1)}
 
-\item{max_niterations}{iteration at which to stop the while loop (default to infinity)}
+\item{max_iterations}{iteration at which to stop the while loop (default to infinity)}
 }
 \value{
 a list with objects such as 
-mcmcestimator is the MCMC estimator of the gradient at level
-unbiasedestimator is an unbiased estimator of the gradient at level
+mcmcestimator is the MCMC estimator of the discretized score 
+unbiasedestimator is an unbiased estimator of the discretized score 
 meetingtime is the meeting time of the two chains at level
 iteration is the number of iterations taken
 finished indicates if the algorithm has completed successfully
