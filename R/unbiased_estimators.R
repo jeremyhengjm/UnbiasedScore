@@ -226,7 +226,7 @@ stratified_estimator <- function(model, theta, observations, nparticles, resampl
   cost <- 0 
   nreps <- nlevel_repeats[1]
   if (nreps > 0){
-    for (rep in 1:nreps){
+    for (irep in 1:nreps){
       score <- unbiased_discretized_score(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling,
                                           initialization, algorithm, k = k, m = m, max_iterations = Inf)
       cost <- cost + nparticles * discretization$nsteps * score$cost
@@ -239,7 +239,7 @@ stratified_estimator <- function(model, theta, observations, nparticles, resampl
   for (level in (minimum_level+1):maximum_level){
     nreps <- nlevel_repeats[level-minimum_level+1]
     if (nreps > 0){
-      for (rep in 1:nreps){
+      for (irep in 1:nreps){
         cat("running level", level, "\n")
         discretization <- model$construct_successive_discretization(level)
         score_increment <- unbiased_score_increment(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling, coupled4_resampling,
@@ -251,7 +251,7 @@ stratified_estimator <- function(model, theta, observations, nparticles, resampl
       }
     }
   }
-
+  
   # end timer and compute elapsed time
   timer <- toc(quiet = TRUE)
   elapsedtime <- timer$toc - timer$tic
