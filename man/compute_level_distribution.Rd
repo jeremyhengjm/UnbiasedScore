@@ -7,7 +7,7 @@
 compute_level_distribution(
   model,
   minimum_level,
-  maximum_level = 50,
+  maximum_level = 16,
   regular_stepsizes = TRUE
 )
 }
@@ -19,11 +19,11 @@ compute_level_distribution(
 \item{maximum_level}{finest discretization level}
 }
 \value{
-a list with objects such as 
-support of the level distribution
-mass_function is the probability mass function of the level distribution
-tail_function is the tail probability function of the level distribution
+a list with objects such as: 
+\code{support} of the level distribution;
+\code{mass_function} is the probability mass function of the level distribution;
+\code{tail_function} is the tail probability function of the level distribution.
 }
 \description{
-Compute distribution of levels using results from Section 4 of Rhee and Glynn (2015)
+Compute distribution of levels using results from Section 4 of Rhee and Glynn (2015).
 }

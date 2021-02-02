@@ -1,6 +1,6 @@
 #' @rdname multilevel_CBSPF
 #' @title Multilevel Conditional Backward Sampling Particle Filter
-#' @description Runs two coupled conditional particle filters (one at each discretization level) with backward sampling (Whiteley, 2010)
+#' @description Runs two coupled conditional particle filters (one at each discretization level) with backward sampling (Whiteley, 2010).
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
@@ -11,7 +11,7 @@
 #' @param coupled_resampling a 2-way coupled resampling scheme, such as \code{\link{coupled2_maximal_independent_residuals}}
 #' @param ref_trajectory_coarse a matrix of reference trajectory for coarser discretization level, of size xdimension x statelength_coarse
 #' @param ref_trajectory_fine a matrix of reference trajectory for finer discretization level, of size xdimension x statelength_fine
-#' @return two new trajectories stored as matrices of size xdimension x statelength_coarse/fine
+#' @return two new trajectories stored as matrices of size xdimension x statelength_coarse/fine.
 #' @export
 multilevel_CBSPF <- function(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling,
                              ref_trajectory_coarse = NULL, ref_trajectory_fine = NULL){

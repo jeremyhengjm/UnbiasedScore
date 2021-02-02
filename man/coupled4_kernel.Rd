@@ -53,8 +53,8 @@ and coarsetimes of length statelength_fine indexing time steps of coarse level}
 if missing, this function store all states and ancestors}
 }
 \value{
-four new trajectories stored as matrices of size xdimension x statelength_coarse/fine
+four new trajectories stored as matrices of size xdimension x statelength_coarse/fine.
 }
 \description{
-Runs four coupled kernels (two at each discretization level) that leaves smoothing distribution at corresponding level invariant
+Runs four coupled kernels (two at each discretization level) that leaves smoothing distribution at corresponding level invariant.
 }

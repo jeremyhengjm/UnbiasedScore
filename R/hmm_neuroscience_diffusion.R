@@ -1,21 +1,22 @@
 #' @rdname hmm_neuroscience_diffusion
-#' @title Construct hidden markov model obtained by discretizing neuroscience diffusion
+#' @title Construct hidden Markov model obtained by discretizing neuroscience diffusion
+#' @description Define a hidden Markov model obtained by discretizing neuroscience diffusion.
 #' @param spiketimes1 vector specifying cell spike times for the first grid cell
 #' @param spiketimes2 vector specifying cell spike times for the second grid cell
-#' @description This function returns a list with objects such as
-#' * xdimension is the dimension of the latent process, 
-#' * ydimension is the dimension of the observation process, 
-#' * theta_dimension is the dimension of the parameter space, 
-#' * compute_observations compute observation counts given spike times and discretization level, 
-#' * construct_discretization outputs a list containing stepsize, nsteps, statelength and obstimes, 
-#' * construct_successive_discretization outputs lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
-#' and coarsetimes of length statelength_fine indexing time steps of coarse level
-#' * sigma is the diffusion coefficient of the process, 
-#' * rinit to sample from the initial distribution, 
-#' * rtransition to sample from the Markov transition, 
-#' * dmeasurement to evaluate the measurement density, 
-#' * functional is the smoothing function to compute gradient of log-likelihood. 
-#' @return A list 
+#' @return a list with objects such as: 
+#' \code{xdimension} is the dimension of the latent process; 
+#' \code{ydimension} is the dimension of the observation process; 
+#' \code{theta_dimension} is the dimension of the parameter space; 
+#' \code{compute_observations} compute observation counts given spike times and discretization level; 
+#' \code{construct_discretization} outputs a list containing stepsize, nsteps, statelength and obstimes; 
+#' \code{construct_successive_discretization} outputs lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
+#' and coarsetimes of length statelength_fine indexing time steps of coarse level;
+#' \code{sigma} is the diffusion coefficient of the process; 
+#' \code{rinit} to sample from the initial distribution; 
+#' \code{rtransition} to sample from the Markov transition; 
+#' \code{dtransition} to evaluate the transition density; 
+#' \code{dmeasurement} to evaluate the measurement density; 
+#' \code{functional} is the smoothing function to compute gradient of log-likelihood. 
 #' @export
 hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2, level_observation, terminal_time){
   

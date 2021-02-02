@@ -1,6 +1,6 @@
 #' @rdname CBSPF
 #' @title Conditional Backward Sampling Particle Filter
-#' @description Runs a conditional particle filter with backward sampling (Whiteley, 2010)
+#' @description Runs a conditional particle filter with backward sampling (Whiteley, 2010).
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization list containing stepsize, nsteps, statelength and obstimes
@@ -8,7 +8,7 @@
 #' @param nparticles number of particles
 #' @param resampling_threshold ESS proportion below which resampling is triggered (always resample at observation times by default)
 #' @param ref_trajectory a matrix of reference trajectory, of size xdimension x statelength
-#'@return a matrix containing a new trajectory of size xdimension x statelength
+#'@return a matrix containing a new trajectory of size xdimension x statelength.
 #'@export
 CBSPF <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1,
                   ref_trajectory){

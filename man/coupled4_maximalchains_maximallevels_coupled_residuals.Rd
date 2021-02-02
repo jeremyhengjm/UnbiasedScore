@@ -28,9 +28,9 @@ coupled4_maximalchains_maximallevels_coupled_residuals(
 \item{rand}{common uniform random variables used for the coupled resampling}
 }
 \value{
-A matrix of ancestor indexes of size ndraws x 4
+a matrix of ancestor indexes of size ndraws x 4.
 }
 \description{
 This function performs (4-way) coupled multinomial resampling by maximally coupling pairs of chains  
-and maximally coupling across levels with coupled residuals using common uniform random variables on each particle system
+and maximally coupling across levels with coupled residuals using common uniform random variables on each particle system.
 }

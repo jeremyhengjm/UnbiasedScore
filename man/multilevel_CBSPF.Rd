@@ -37,8 +37,8 @@ and coarsetimes of length statelength_fine indexing time steps of coarse level}
 \item{ref_trajectory_fine}{a matrix of reference trajectory for finer discretization level, of size xdimension x statelength_fine}
 }
 \value{
-two new trajectories stored as matrices of size xdimension x statelength_coarse/fine
+two new trajectories stored as matrices of size xdimension x statelength_coarse/fine.
 }
 \description{
-Runs two coupled conditional particle filters (one at each discretization level) with backward sampling (Whiteley, 2010)
+Runs two coupled conditional particle filters (one at each discretization level) with backward sampling (Whiteley, 2010).
 }

@@ -46,8 +46,8 @@ coupled2_kernel(
 if missing, this function store all states and ancestors}
 }
 \value{
-a pair of new trajectories stored as matrices of size xdimension x statelength
+a pair of new trajectories stored as matrices of size xdimension x statelength.
 }
 \description{
-Runs two coupled kernels that leaves smoothing distribution (at each discretization level) invariant
+Runs two coupled kernels that leaves smoothing distribution (at each discretization level) invariant.
 }

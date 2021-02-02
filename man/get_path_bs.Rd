@@ -27,8 +27,8 @@ get_path_bs(
 \item{store_logweights}{a matrix of log-weights, of size nobservations x nparticles}
 }
 \value{
-a matrix containing a new trajectory of size xdimension x statelength
+a matrix containing a new trajectory of size xdimension x statelength.
 }
 \description{
-Get a path from the output of a particle filter by sampling an ancestry
+Get a path from the output of a particle filter by sampling an ancestry.
 }

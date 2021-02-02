@@ -1,6 +1,6 @@
 #' @rdname unbiased_discretized_score
 #' @title Unbiased estimator of score function at a discretization level
-#' @description Computes unbiased estimator of the time-discretized score function
+#' @description Computes unbiased estimator of the time-discretized score function.
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization list containing stepsize, nsteps, statelength and obstimes
@@ -16,14 +16,14 @@
 #' @param k iteration at which to start averaging (default to 0)
 #' @param m iteration at which to stop averaging (default to 1)
 #' @param max_iterations iteration at which to stop the while loop (default to infinity)
-#' @return a list with objects such as 
-#' mcmcestimator is the MCMC estimator of the discretized score 
-#' unbiasedestimator is an unbiased estimator of the discretized score 
-#' meetingtime is the meeting time of the two chains at level
-#' iteration is the number of iterations taken
-#' finished indicates if the algorithm has completed successfully
-#' cost is the cost of the algorithm in units of the CPF kernel at current discretization level
-#' elapsedtime is the time taken by the algorithm
+#' @return a list with objects such as: 
+#' \code{mcmcestimator} is the MCMC estimator of the discretized score; 
+#' \code{unbiasedestimator} is an unbiased estimator of the discretized score; 
+#' \code{meetingtime} is the meeting time of the two chains at level; 
+#' \code{iteration} is the number of iterations taken; 
+#' \code{finished} indicates if the algorithm has completed successfully; 
+#' \code{cost} is the cost of the algorithm in units of the CPF kernel at current discretization level; 
+#' \code{elapsedtime} is the time taken by the algorithm.
 #' @export
 unbiased_discretized_score <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1, coupled_resampling, 
                                        initialization = "particlefilter", algorithm = "CPF", k = 0, m = 1, max_iterations = Inf){
@@ -125,7 +125,7 @@ unbiased_discretized_score <- function(model, theta, discretization, observation
 
 #' @rdname unbiased_score_increment
 #' @title Unbiased estimator of score increment between two successive discretization levels
-#' @description Computes unbiased estimator of the difference of the time-discretized score functions between two successive discretization levels
+#' @description Computes unbiased estimator of the difference of the time-discretized score functions between two successive discretization levels.
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
@@ -143,20 +143,20 @@ unbiased_discretized_score <- function(model, theta, discretization, observation
 #' @param k iteration at which to start averaging (default to 0)
 #' @param m iteration at which to stop averaging (default to 1)
 #' @param max_iterations iteration at which to stop the while loop (default to infinity)
-#' @return a list with objects such as 
-#' mcmcestimator_coarse is the MCMC estimator of the score at level-1
-#' mcmcestimator_fine is the MCMC estimator of the score at level
-#' unbiasedestimator_coarse is an unbiased estimator of the score at level-1
-#' unbiasedestimator_fine is an unbiased estimator of the score at level
-#' mcmcestimator is the MCMC estimator of the score increment between the two discretization levels
-#' unbiasedestimator is an unbiased estimator of the score increment between the two discretization levels
-#' meetingtime_coarse is the meeting time of the two chains at level-1
-#' meetingtime_fine is the meeting time of the two chains at level
-#' iteration is the number of iterations taken
-#' finished indicates if the algorithm has completed successfully
-#' cost_coarse is the cost of the algorithm in units of the CPF kernel at coarse discretization level
-#' cost_fine is the cost of the algorithm in units of the CPF kernel at fine discretization level
-#' elapsedtime is the time taken by the algorithm
+#' @return a list with objects such as: 
+#' \code{mcmcestimator_coarse} is the MCMC estimator of the score at level-1; 
+#' \code{mcmcestimator_fine} is the MCMC estimator of the score at level; 
+#' \code{unbiasedestimator_coarse} is an unbiased estimator of the score at level-1; 
+#' \code{unbiasedestimator_fine} is an unbiased estimator of the score at level; 
+#' \code{mcmcestimator} is the MCMC estimator of the score increment between the two discretization levels; 
+#' \code{unbiasedestimator} is an unbiased estimator of the score increment between the two discretization levels; 
+#' \code{meetingtime_coarse} is the meeting time of the two chains at level-1; 
+#' \code{meetingtime_fine} is the meeting time of the two chains at level;
+#' \code{iteration} is the number of iterations taken; 
+#' \code{finished} indicates if the algorithm has completed successfully; 
+#' \code{cost_coarse} is the cost of the algorithm in units of the CPF kernel at coarse discretization level; 
+#' \code{cost_fine} is the cost of the algorithm in units of the CPF kernel at fine discretization level; 
+#' \code{elapsedtime} is the time taken by the algorithm. 
 #' @export
 unbiased_score_increment <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1, coupled2_resampling, coupled4_resampling, 
                                      initialization = "particlefilter", algorithm = "CPF", k = 0, m = 1, max_iterations = Inf){

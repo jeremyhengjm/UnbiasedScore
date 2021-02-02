@@ -1,6 +1,6 @@
 #' @rdname coupled2_CBSPF
 #' @title 2-way Coupled Conditional Particle Filter with Backward Sampling
-#' @description Runs two coupled conditional particle filters (at each discretization level)
+#' @description Runs two coupled conditional particle filters (at each discretization level).
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization list containing stepsize, nsteps, statelength and obstimes
@@ -10,7 +10,7 @@
 #' @param coupled_resampling a 2-way coupled resampling scheme, such as \code{\link{coupled2_maximal_independent_residuals}}
 #' @param ref_trajectory1 a matrix of first reference trajectory, of size xdimension x statelength
 #' @param ref_trajectory2 a matrix of second reference trajectory, of size xdimension x statelength
-#' @return a pair of new trajectories stored as matrices of size xdimension x statelength
+#' @return a pair of new trajectories stored as matrices of size xdimension x statelength.
 #' @export
 coupled2_CBSPF <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1, coupled_resampling, 
                          ref_trajectory1, ref_trajectory2){

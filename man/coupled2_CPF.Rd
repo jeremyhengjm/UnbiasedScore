@@ -40,8 +40,8 @@ coupled2_CPF(
 if missing, this function store all states and ancestors}
 }
 \value{
-a pair of new trajectories stored as matrices of size xdimension x statelength
+a pair of new trajectories stored as matrices of size xdimension x statelength.
 }
 \description{
-Runs two coupled conditional particle filters (at each discretization level)
+Runs two coupled conditional particle filters (at each discretization level).
 }

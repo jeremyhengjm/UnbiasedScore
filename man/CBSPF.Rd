@@ -30,8 +30,8 @@ CBSPF(
 \item{ref_trajectory}{a matrix of reference trajectory, of size xdimension x statelength}
 }
 \value{
-a matrix containing a new trajectory of size xdimension x statelength
+a matrix containing a new trajectory of size xdimension x statelength.
 }
 \description{
-Runs a conditional particle filter with backward sampling (Whiteley, 2010)
+Runs a conditional particle filter with backward sampling (Whiteley, 2010).
 }

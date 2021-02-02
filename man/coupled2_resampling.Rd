@@ -16,9 +16,9 @@ coupled2_resampling(normweights1, normweights2, ndraws, rand)
 \item{rand}{common uniform random variables used for the coupled resampling}
 }
 \value{
-A matrix of ancestor indexes of size ndraws x 2
+a matrix of ancestor indexes of size ndraws x 2.
 }
 \description{
 This function performs (2-way) coupled multinomial resampling 
-on each particle system using common uniform random variables
+on each particle system using common uniform random variables.
 }

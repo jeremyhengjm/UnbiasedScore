@@ -1,6 +1,6 @@
 #' @rdname multilevel_kernel
 #' @title Runs a multilevel Markov kernel 
-#' @description Runs two coupled kernels that leaves the corresponding smoothing distribution (at each discretization level) invariant 
+#' @description Runs two coupled kernels that leaves the corresponding smoothing distribution (at each discretization level) invariant. 
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
@@ -17,7 +17,7 @@
 #' \code{\link{CBSPF}} for conditional backward sampling particle filter
 #' @param treestorage logical specifying tree storage of Jacob, Murray and Rubenthaler (2013);
 #' if missing, this function store all states and ancestors
-#' @return two new trajectories stored as matrices of size xdimension x statelength_coarse/fine
+#' @return two new trajectories stored as matrices of size xdimension x statelength_coarse/fine.
 #' @export
 multilevel_kernel <- function(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling,
                                ref_trajectory_coarse = NULL, ref_trajectory_fine = NULL, algorithm = "CPF", treestorage = FALSE){

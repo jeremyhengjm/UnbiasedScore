@@ -1,6 +1,6 @@
 #' @rdname CPF
 #' @title Conditional Particle Filter
-#' @description Runs a conditional particle filter
+#' @description Runs a conditional particle filter.
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization list containing stepsize, nsteps, statelength and obstimes
@@ -11,7 +11,7 @@
 #' if missing, this function runs a standard particle filter
 #' @param treestorage logical specifying tree storage of Jacob, Murray and Rubenthaler (2013); 
 #' if missing, this function store all states and ancestors
-#'@return a matrix containing a new trajectory of size xdimension x statelength
+#'@return a matrix containing a new trajectory of size xdimension x statelength.
 #'@export
 CPF <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1,
                 ref_trajectory = NULL, treestorage = FALSE){

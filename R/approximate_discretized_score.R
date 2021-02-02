@@ -1,6 +1,6 @@
 #' @rdname approximate_discretized_score
 #' @title MCMC estimator of score function at a discretization level
-#' @description Computes MCMC estimator of the time-discretized score function
+#' @description Computes MCMC estimator of the time-discretized score function.
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization list containing stepsize, nsteps, statelength and obstimes
@@ -13,10 +13,10 @@
 #' \code{\link{CASPF}} for conditional ancestor sampling particle filter,
 #' \code{\link{CBSPF}} for conditional backward sampling particle filter
 #' @param max_iterations number of MCMC iterations
-#' @return a list with objects such as 
-#' mcmcestimator is the MCMC estimator of the discretized score 
-#' cost is the cost of the algorithm 
-#' elapsedtime is the time taken by the algorithm
+#' @return a list with objects such as: 
+#' \code{mcmcestimator} is the MCMC estimator of the discretized score; 
+#' \code{cost} is the cost of the algorithm; 
+#' \code{elapsedtime} is the time taken by the algorithm.
 #' @export
 approximate_discretized_score <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1, 
                                           initialization = "particlefilter", algorithm = "CPF", max_iterations){

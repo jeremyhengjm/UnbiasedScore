@@ -1,12 +1,12 @@
 #' @rdname simulate_multilevel_SDE
 #' @title Simulate two time-discretized process following a stochastic differential equation
 #' @description Simulate two trajectories following a stochastic differential equation using 
-#' Euler-Maruyama at two successive discretization levels
+#' Euler-Maruyama at two successive discretization levels.
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
 #' and coarsetimes of length statelength_fine indexing time steps of coarse level
-#' @return two new trajectories stored as matrices of size xdimension x statelength_coarse/fine
+#' @return two new trajectories stored as matrices of size xdimension x statelength_coarse/fine.
 #' @export
 simulate_multilevel_SDE <- function(model, theta, discretization){
   

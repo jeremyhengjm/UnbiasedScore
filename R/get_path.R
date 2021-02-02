@@ -1,12 +1,12 @@
 #' @rdname get_path
 #' @title Get a path from the output of a particle filter
-#' @description Get a path from the output of a particle filter by tracing an ancestry
+#' @description Get a path from the output of a particle filter by tracing an ancestry.
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param discretization list containing stepsize, nsteps, statelength and obstimes
 #' @param xtrajectory an array of particle states, of size statelength x xdimension x nparticles
 #' @param ancestries a matrix of ancestor indexes, of size statelength x nparticles
 #' @param ancestor an ancestor index at the terminal step
-#'@return a matrix containing a new trajectory of size xdimension x statelength
+#'@return a matrix containing a new trajectory of size xdimension x statelength.
 #'@export
 get_path <- function(model, discretization, xtrajectory, ancestries, ancestor){
   # get model/problem and discretization settings
@@ -28,14 +28,14 @@ get_path <- function(model, discretization, xtrajectory, ancestries, ancestor){
 
 #' @rdname get_path_bs
 #' @title Get a path from the output of a particle filter using backward sampling (Whiteley, 2010)
-#' @description Get a path from the output of a particle filter by sampling an ancestry
+#' @description Get a path from the output of a particle filter by sampling an ancestry.
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param discretization list containing stepsize, nsteps, statelength and obstimes
 #' @param xtrajectory an array of particle states, of size statelength x xdimension x nparticles
 #' @param ancestries a matrix of ancestor indexes, of size statelength x nparticles
 #' @param ancestor an ancestor index at the terminal step
 #' @param store_logweights a matrix of log-weights, of size nobservations x nparticles
-#'@return a matrix containing a new trajectory of size xdimension x statelength
+#'@return a matrix containing a new trajectory of size xdimension x statelength.
 #'@export
 get_path_bs <- function(model, discretization, xtrajectory, ancestries, ancestor, store_logweights){
   # get model/problem and discretization settings

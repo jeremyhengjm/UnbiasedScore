@@ -1,6 +1,6 @@
 #' @rdname coupled2_CPF
 #' @title 2-Coupled Conditional Particle Filter
-#' @description Runs two coupled conditional particle filters (at each discretization level)
+#' @description Runs two coupled conditional particle filters (at each discretization level).
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization list containing stepsize, nsteps, statelength and obstimes
@@ -12,7 +12,7 @@
 #' @param ref_trajectory2 a matrix of second reference trajectory, of size xdimension x statelength
 #' @param treestorage logical specifying tree storage of Jacob, Murray and Rubenthaler (2013);
 #' if missing, this function store all states and ancestors
-#' @return a pair of new trajectories stored as matrices of size xdimension x statelength
+#' @return a pair of new trajectories stored as matrices of size xdimension x statelength.
 #' @export
 coupled2_CPF <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1, coupled_resampling, 
                          ref_trajectory1, ref_trajectory2, treestorage = FALSE){

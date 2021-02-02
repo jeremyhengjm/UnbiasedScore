@@ -14,8 +14,8 @@ simulate_SDE(model, theta, discretization)
 \item{discretization}{list containing stepsize, nsteps and statelength}
 }
 \value{
-a matrix containing a new trajectory of size xdimension x statelength
+a matrix containing a new trajectory of size xdimension x statelength.
 }
 \description{
-Simulate a trajectory following a stochastic differential equation using Euler-Maruyama discretization
+Simulate a trajectory following a stochastic differential equation using Euler-Maruyama discretization.
 }

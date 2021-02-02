@@ -1,6 +1,6 @@
 #' @rdname coupled4_CPF
 #' @title 4-Coupled Conditional Particle Filter
-#' @description Runs four coupled conditional particle filters (two at each discretization level)
+#' @description Runs four coupled conditional particle filters (two at each discretization level).
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
@@ -15,7 +15,7 @@
 #' @param ref_trajectory_fine2 a matrix of second reference trajectory for finer discretization level, of size xdimension x statelength_fine
 #' @param treestorage logical specifying tree storage of Jacob, Murray and Rubenthaler (2013);
 #' if missing, this function store all states and ancestors
-#' @return four new trajectories stored as matrices of size xdimension x statelength_coarse/fine
+#' @return four new trajectories stored as matrices of size xdimension x statelength_coarse/fine.
 #' @export
 coupled4_CPF <- function(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling,
                          ref_trajectory_coarse1, ref_trajectory_coarse2,

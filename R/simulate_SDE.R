@@ -1,10 +1,10 @@
 #' @rdname simulate_SDE
 #' @title Simulate time-discretized process following a stochastic differential equation
-#' @description Simulate a trajectory following a stochastic differential equation using Euler-Maruyama discretization
+#' @description Simulate a trajectory following a stochastic differential equation using Euler-Maruyama discretization.
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization list containing stepsize, nsteps and statelength 
-#'@return a matrix containing a new trajectory of size xdimension x statelength
+#'@return a matrix containing a new trajectory of size xdimension x statelength.
 #'@export
 simulate_SDE <- function(model, theta, discretization){
   

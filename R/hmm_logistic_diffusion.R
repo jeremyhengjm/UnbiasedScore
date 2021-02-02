@@ -1,21 +1,21 @@
 #' @rdname hmm_logistic_diffusion
-#' @title Construct hidden markov model obtained by discretizing logistic diffusion process
+#' @title Construct hidden Markov model obtained by discretizing logistic diffusion process
+#' @description Define a hidden Markov model by discretizing logistic diffusion process.
 #' @param times vector specifying observation times
 #' @param sigma0 diffusivity parameter
-#' @description This function returns a list with objects such as
-#' * xdimension is the dimension of the latent process
-#' * ydimension is the dimension of the observation process
-#' * theta_dimension is the dimension of the parameter space
-#' * construct_discretization outputs a list containing stepsize, nsteps, statelength and obstimes
-#' * construct_successive_discretization outputs lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
-#' and coarsetimes of length statelength_fine indexing time steps of coarse level
-#' * sigma is the diffusion coefficient of the process
-#' * rinit to sample from the initial distribution
-#' * rtransition to sample from the Markov transition
-#' * dtransition to evaluate the transition density
-#' * dmeasurement to evaluate the measurement density
-#' * functional is the smoothing function to compute gradient of log-likelihood 
-#' @return A list 
+#' @return a list with objects such as: 
+#' \code{xdimension} is the dimension of the latent process; 
+#' \code{ydimension} is the dimension of the observation process; 
+#' \code{theta_dimension} is the dimension of the parameter space; 
+#' \code{construct_discretization} outputs a list containing stepsize, nsteps, statelength and obstimes; 
+#' \code{construct_successive_discretization} outputs lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
+#' and coarsetimes of length statelength_fine indexing time steps of coarse level;
+#' \code{sigma} is the diffusion coefficient of the process; 
+#' \code{rinit} to sample from the initial distribution; 
+#' \code{rtransition} to sample from the Markov transition; 
+#' \code{dtransition} to evaluate the transition density; 
+#' \code{dmeasurement} to evaluate the measurement density; 
+#' \code{functional} is the smoothing function to compute gradient of log-likelihood. 
 #' @export
 hmm_logistic_diffusion <- function(times, sigma0){
   # model dimensions

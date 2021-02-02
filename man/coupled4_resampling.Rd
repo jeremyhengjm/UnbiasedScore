@@ -27,9 +27,9 @@ coupled4_resampling(
 \item{rand}{common uniform random variables used for the coupled resampling}
 }
 \value{
-A matrix of ancestor indexes of size ndraws x 4
+a matrix of ancestor indexes of size ndraws x 4.
 }
 \description{
 This function performs (4-way) coupled multinomial resampling 
-on each particle system using common uniform random variables
+on each particle system using common uniform random variables.
 }

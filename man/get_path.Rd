@@ -18,8 +18,8 @@ get_path(model, discretization, xtrajectory, ancestries, ancestor)
 \item{ancestor}{an ancestor index at the terminal step}
 }
 \value{
-a matrix containing a new trajectory of size xdimension x statelength
+a matrix containing a new trajectory of size xdimension x statelength.
 }
 \description{
-Get a path from the output of a particle filter by tracing an ancestry
+Get a path from the output of a particle filter by tracing an ancestry.
 }

@@ -1,6 +1,6 @@
 #' @rdname coupled4_CBSPF
 #' @title 4-way Coupled Conditional Particle Filter with Backward Sampling
-#' @description Runs four coupled conditional particle filters (two at each discretization level)
+#' @description Runs four coupled conditional particle filters (two at each discretization level).
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
@@ -13,7 +13,7 @@
 #' @param ref_trajectory_coarse2 a matrix of second reference trajectory for coarser discretization level, of size xdimension x statelength_coarse
 #' @param ref_trajectory_fine1 a matrix of first reference trajectory for finer discretization level, of size xdimension x statelength_fine
 #' @param ref_trajectory_fine2 a matrix of second reference trajectory for finer discretization level, of size xdimension x statelength_fine
-#' @return four new trajectories stored as matrices of size xdimension x statelength_coarse/fine
+#' @return four new trajectories stored as matrices of size xdimension x statelength_coarse/fine.
 #' @export
 coupled4_CBSPF <- function(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling,
                          ref_trajectory_coarse1, ref_trajectory_coarse2, ref_trajectory_fine1, ref_trajectory_fine2){

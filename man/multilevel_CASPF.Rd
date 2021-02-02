@@ -41,8 +41,8 @@ and coarsetimes of length statelength_fine indexing time steps of coarse level}
 if missing, this function store all states and ancestors}
 }
 \value{
-two new trajectories stored as matrices of size xdimension x statelength_coarse/fine
+two new trajectories stored as matrices of size xdimension x statelength_coarse/fine.
 }
 \description{
-Runs two coupled conditional particle filters (one at each discretization level) with ancestor sampling (Lindsten, Jordan and Schon, 2014)
+Runs two coupled conditional particle filters (one at each discretization level) with ancestor sampling (Lindsten, Jordan and Schon, 2014).
 }

@@ -17,9 +17,9 @@ coupled2_maximal_coupled_residuals(normweights1, normweights2, ndraws, rand)
 \item{rand}{common uniform random variables used for the coupled resampling}
 }
 \value{
-A matrix of ancestor indexes of size ndraws x 2
+a matrix of ancestor indexes of size ndraws x 2.
 }
 \description{
 This function performs (2-way) maximally coupled multinomial resampling 
-with coupled residuals using common uniform random variables on each particle system
+with coupled residuals using common uniform random variables on each particle system.
 }

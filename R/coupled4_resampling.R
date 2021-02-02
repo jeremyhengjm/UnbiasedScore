@@ -1,14 +1,14 @@
 #' @rdname coupled4_resampling
 #' @title (4-way) Coupled multinomial resampling using common uniforms random variables 
 #' @description This function performs (4-way) coupled multinomial resampling 
-#' on each particle system using common uniform random variables
+#' on each particle system using common uniform random variables.
 #' @param normweights1 normalized weights of first particle system
 #' @param normweights2 normalized weights of second particle system
 #' @param normweights3 normalized weights of third particle system
 #' @param normweights4 normalized weights of fourth particle system
 #' @param ndraws number of samples from multinomial distribution
 #' @param rand common uniform random variables used for the coupled resampling
-#' @return A matrix of ancestor indexes of size ndraws x 4
+#' @return a matrix of ancestor indexes of size ndraws x 4.
 #' @export
 coupled4_resampling <- function(normweights1, normweights2, normweights3, normweights4, ndraws, rand){
   ancestors <- matrix(0, nrow = ndraws, ncol = 4)
@@ -23,14 +23,14 @@ coupled4_resampling <- function(normweights1, normweights2, normweights3, normwe
 #' @rdname coupled4_maximal_independent_residuals
 #' @title (4-way) Maximally coupled multinomial resampling with independent residuals
 #' @description This function performs (4-way) maximally coupled multinomial resampling 
-#' with independent residuals on each particle system
+#' with independent residuals on each particle system.
 #' @param normweights1 normalized weights of first particle system
 #' @param normweights2 normalized weights of second particle system
 #' @param normweights3 normalized weights of third particle system
 #' @param normweights4 normalized weights of fourth particle system
 #' @param ndraws number of samples from multinomial distribution
 #' @param rand common uniform random variables used for the coupled resampling
-#' @return A matrix of ancestor indexes of size ndraws x 4s
+#' @return a matrix of ancestor indexes of size ndraws x 4.
 #' @export
 coupled4_maximal_independent_residuals <- function(normweights1, normweights2, normweights3, normweights4, ndraws, rand){
   # compute overlap 
@@ -97,14 +97,14 @@ coupled4_maximal_independent_residuals <- function(normweights1, normweights2, n
 #' @title (4-way) Maximally coupled multinomial resampling with coupled residuals 
 #' using common uniform random variables
 #' @description This function performs (4-way) maximally coupled multinomial resampling 
-#' with coupled residuals using common uniform random variables on each particle system
+#' with coupled residuals using common uniform random variables on each particle system.
 #' @param normweights1 normalized weights of first particle system
 #' @param normweights2 normalized weights of second particle system
 #' @param normweights3 normalized weights of third particle system
 #' @param normweights4 normalized weights of fourth particle system
 #' @param ndraws number of samples from multinomial distribution
 #' @param rand common uniform random variables used for the coupled resampling
-#' @return A matrix of ancestor indexes of size ndraws x 4
+#' @return a matrix of ancestor indexes of size ndraws x 4.
 #' @export
 coupled4_maximal_coupled_residuals <- function(normweights1, normweights2, normweights3, normweights4, ndraws, rand){
   # compute overlap 
@@ -144,14 +144,14 @@ coupled4_maximal_coupled_residuals <- function(normweights1, normweights2, normw
 #' across levels and maximally coupling chains on each level with independent residuals 
 #' @description This function performs (4-way) coupled multinomial resampling by maximally coupling pairs 
 #' of indexes across levels and maximally coupling chains on each level with independent residuals 
-#' on each particle system
+#' on each particle system.
 #' @param normweights_coarse1 normalized weights of first particle system on coarse level
 #' @param normweights_coarse2 normalized weights of second particle system on coarse level
 #' @param normweights_fine1 normalized weights of first particle system on fine level
 #' @param normweights_fine2 normalized weights of second particle system on fine level
 #' @param ndraws number of samples from multinomial distribution
 #' @param rand common uniform random variables used for the coupled resampling
-#' @return A matrix of ancestor indexes of size ndraws x 4
+#' @return a matrix of ancestor indexes of size ndraws x 4.
 #' @export
 coupled4_maximallevels_maximalchains_independent_residuals <- function(normweights_coarse1, normweights_coarse2, 
                                                                        normweights_fine1, normweights_fine2, 
@@ -177,14 +177,14 @@ coupled4_maximallevels_maximalchains_independent_residuals <- function(normweigh
 #' coupled residuals using common uniform random variables 
 #' @description This function performs (4-way) coupled multinomial resampling by maximally coupling pairs 
 #' of indexes across levels and maximally coupling chains on each level with with coupled residuals 
-#' using common uniform random variables on each particle system 
+#' using common uniform random variables on each particle system. 
 #' @param normweights_coarse1 normalized weights of first particle system on coarse level
 #' @param normweights_coarse2 normalized weights of second particle system on coarse level
 #' @param normweights_fine1 normalized weights of first particle system on fine level
 #' @param normweights_fine2 normalized weights of second particle system on fine level
 #' @param ndraws number of samples from multinomial distribution
 #' @param rand common uniform random variables used for the coupled resampling
-#' @return A matrix of ancestor indexes of size ndraws x 4
+#' @return a matrix of ancestor indexes of size ndraws x 4.
 #' @export
 coupled4_maximallevels_maximalchains_coupled_residuals <- function(normweights_coarse1, normweights_coarse2, 
                                                                    normweights_fine1, normweights_fine2, 
@@ -208,14 +208,14 @@ coupled4_maximallevels_maximalchains_coupled_residuals <- function(normweights_c
 #' @title (4-way) coupled multinomial resampling by maximally coupling pairs of chains on each level 
 #' and maximally coupling across levels with independent residuals 
 #' @description This function performs (4-way) coupled multinomial resampling by maximally coupling pairs of chains  
-#' and maximally coupling across levels with independent residuals on each particle system 
+#' and maximally coupling across levels with independent residuals on each particle system. 
 #' @param normweights_coarse1 normalized weights of first particle system on coarse level
 #' @param normweights_coarse2 normalized weights of second particle system on coarse level
 #' @param normweights_fine1 normalized weights of first particle system on fine level
 #' @param normweights_fine2 normalized weights of second particle system on fine level
 #' @param ndraws number of samples from multinomial distribution
 #' @param rand common uniform random variables used for the coupled resampling
-#' @return A matrix of ancestor indexes of size ndraws x 4
+#' @return a matrix of ancestor indexes of size ndraws x 4.
 #' @export
 coupled4_maximalchains_maximallevels_independent_residuals <- function(normweights_coarse1, normweights_coarse2, 
                                                                        normweights_fine1, normweights_fine2, 
@@ -267,14 +267,14 @@ coupled4_maximalchains_maximallevels_independent_residuals <- function(normweigh
 #' @title (4-way) coupled multinomial resampling by maximally coupling pairs of chains on each level 
 #' and maximally coupling across levels with coupled residuals using common uniform random variables 
 #' @description This function performs (4-way) coupled multinomial resampling by maximally coupling pairs of chains  
-#' and maximally coupling across levels with coupled residuals using common uniform random variables on each particle system
+#' and maximally coupling across levels with coupled residuals using common uniform random variables on each particle system.
 #' @param normweights_coarse1 normalized weights of first particle system on coarse level
 #' @param normweights_coarse2 normalized weights of second particle system on coarse level
 #' @param normweights_fine1 normalized weights of first particle system on fine level
 #' @param normweights_fine2 normalized weights of second particle system on fine level
 #' @param ndraws number of samples from multinomial distribution
 #' @param rand common uniform random variables used for the coupled resampling
-#' @return A matrix of ancestor indexes of size ndraws x 4
+#' @return a matrix of ancestor indexes of size ndraws x 4.
 #' @export
 coupled4_maximalchains_maximallevels_coupled_residuals <- function(normweights_coarse1, normweights_coarse2, 
                                                                    normweights_fine1, normweights_fine2, 

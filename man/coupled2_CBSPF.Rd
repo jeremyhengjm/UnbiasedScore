@@ -36,8 +36,8 @@ coupled2_CBSPF(
 \item{ref_trajectory2}{a matrix of second reference trajectory, of size xdimension x statelength}
 }
 \value{
-a pair of new trajectories stored as matrices of size xdimension x statelength
+a pair of new trajectories stored as matrices of size xdimension x statelength.
 }
 \description{
-Runs two coupled conditional particle filters (at each discretization level)
+Runs two coupled conditional particle filters (at each discretization level).
 }

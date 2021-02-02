@@ -1,6 +1,6 @@
 #' @rdname multilevel_CASPF
 #' @title Multilevel Conditional Ancestor Sampling Particle Filter 
-#' @description Runs two coupled conditional particle filters (one at each discretization level) with ancestor sampling (Lindsten, Jordan and Schon, 2014)
+#' @description Runs two coupled conditional particle filters (one at each discretization level) with ancestor sampling (Lindsten, Jordan and Schon, 2014).
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
@@ -13,7 +13,7 @@
 #' @param ref_trajectory_fine a matrix of reference trajectory for finer discretization level, of size xdimension x statelength_fine
 #' @param treestorage logical specifying tree storage of Jacob, Murray and Rubenthaler (2013);
 #' if missing, this function store all states and ancestors
-#' @return two new trajectories stored as matrices of size xdimension x statelength_coarse/fine
+#' @return two new trajectories stored as matrices of size xdimension x statelength_coarse/fine.
 #' @export
 multilevel_CASPF <- function(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling,
                            ref_trajectory_coarse = NULL, ref_trajectory_fine = NULL, treestorage = FALSE){

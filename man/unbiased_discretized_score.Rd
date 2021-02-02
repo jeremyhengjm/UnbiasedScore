@@ -48,15 +48,15 @@ unbiased_discretized_score(
 \item{max_iterations}{iteration at which to stop the while loop (default to infinity)}
 }
 \value{
-a list with objects such as 
-mcmcestimator is the MCMC estimator of the discretized score 
-unbiasedestimator is an unbiased estimator of the discretized score 
-meetingtime is the meeting time of the two chains at level
-iteration is the number of iterations taken
-finished indicates if the algorithm has completed successfully
-cost is the cost of the algorithm in units of the CPF kernel at current discretization level
-elapsedtime is the time taken by the algorithm
+a list with objects such as: 
+\code{mcmcestimator} is the MCMC estimator of the discretized score; 
+\code{unbiasedestimator} is an unbiased estimator of the discretized score; 
+\code{meetingtime} is the meeting time of the two chains at level; 
+\code{iteration} is the number of iterations taken; 
+\code{finished} indicates if the algorithm has completed successfully; 
+\code{cost} is the cost of the algorithm in units of the CPF kernel at current discretization level; 
+\code{elapsedtime} is the time taken by the algorithm.
 }
 \description{
-Computes unbiased estimator of the time-discretized score function
+Computes unbiased estimator of the time-discretized score function.
 }

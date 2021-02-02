@@ -34,8 +34,8 @@ CASPF(
 if missing, this function store all states and ancestors}
 }
 \value{
-a matrix containing a new trajectory of size xdimension x statelength
+a matrix containing a new trajectory of size xdimension x statelength.
 }
 \description{
-Runs a conditional particle filter with ancestor sampling (Lindsten, Jordan and Schon, 2014)
+Runs a conditional particle filter with ancestor sampling (Lindsten, Jordan and Schon, 2014).
 }

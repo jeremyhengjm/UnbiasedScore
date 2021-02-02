@@ -52,21 +52,21 @@ and coarsetimes of length statelength_fine indexing time steps of coarse level}
 \item{max_iterations}{iteration at which to stop the while loop (default to infinity)}
 }
 \value{
-a list with objects such as 
-mcmcestimator_coarse is the MCMC estimator of the score at level-1
-mcmcestimator_fine is the MCMC estimator of the score at level
-unbiasedestimator_coarse is an unbiased estimator of the score at level-1
-unbiasedestimator_fine is an unbiased estimator of the score at level
-mcmcestimator is the MCMC estimator of the score increment between the two discretization levels
-unbiasedestimator is an unbiased estimator of the score increment between the two discretization levels
-meetingtime_coarse is the meeting time of the two chains at level-1
-meetingtime_fine is the meeting time of the two chains at level
-iteration is the number of iterations taken
-finished indicates if the algorithm has completed successfully
-cost_coarse is the cost of the algorithm in units of the CPF kernel at coarse discretization level
-cost_fine is the cost of the algorithm in units of the CPF kernel at fine discretization level
-elapsedtime is the time taken by the algorithm
+a list with objects such as: 
+\code{mcmcestimator_coarse} is the MCMC estimator of the score at level-1; 
+\code{mcmcestimator_fine} is the MCMC estimator of the score at level; 
+\code{unbiasedestimator_coarse} is an unbiased estimator of the score at level-1; 
+\code{unbiasedestimator_fine} is an unbiased estimator of the score at level; 
+\code{mcmcestimator} is the MCMC estimator of the score increment between the two discretization levels; 
+\code{unbiasedestimator} is an unbiased estimator of the score increment between the two discretization levels; 
+\code{meetingtime_coarse} is the meeting time of the two chains at level-1; 
+\code{meetingtime_fine} is the meeting time of the two chains at level;
+\code{iteration} is the number of iterations taken; 
+\code{finished} indicates if the algorithm has completed successfully; 
+\code{cost_coarse} is the cost of the algorithm in units of the CPF kernel at coarse discretization level; 
+\code{cost_fine} is the cost of the algorithm in units of the CPF kernel at fine discretization level; 
+\code{elapsedtime} is the time taken by the algorithm.
 }
 \description{
-Computes unbiased estimator of the difference of the time-discretized score functions between two successive discretization levels
+Computes unbiased estimator of the difference of the time-discretized score functions between two successive discretization levels.
 }

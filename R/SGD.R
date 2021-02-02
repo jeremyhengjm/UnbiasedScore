@@ -1,6 +1,6 @@
 #' @rdname SGD
 #' @title Stochastic gradient descent
-#' @description Run a stochastic gradient descent using unbiased estimator of the gradient of the log-likelihood
+#' @description Run a stochastic gradient descent using unbiased score estimator. 
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta_initial an initial vector of parameters 
 #' @param observations a matrix of observations of size nobservations x ydimension
@@ -18,9 +18,9 @@
 #' @param stopping_threshold criterion to terminate iterations
 #' @param max_iterations maximum number of SGD iterations
 #' @param mcmc_iter use unbiased estimate if mcmc_iter == 0 or mcmc estimate at maximum_level with mcmc_iter iterations if mcmc_iter > 0
-#' @return a list with objects such as 
-#' theta parameters at the last SGD iteration
-#' trajectory parameters across the SGD iterations
+#' @return a list with objects such as: 
+#' \code{theta} parameters at the last SGD iteration;
+#' \code{trajectory} parameters across the SGD iterations.
 #' @export
 SGD <- function(model, theta_initial, observations, nparticles, resampling_threshold = 1, coupled2_resampling, coupled4_resampling, 
                 k = 0, m = 1, minimum_level, maximum_level, level_distribution,

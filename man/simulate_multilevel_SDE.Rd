@@ -15,9 +15,9 @@ simulate_multilevel_SDE(model, theta, discretization)
 and coarsetimes of length statelength_fine indexing time steps of coarse level}
 }
 \value{
-two new trajectories stored as matrices of size xdimension x statelength_coarse/fine
+two new trajectories stored as matrices of size xdimension x statelength_coarse/fine.
 }
 \description{
 Simulate two trajectories following a stochastic differential equation using 
-Euler-Maruyama at two successive discretization levels
+Euler-Maruyama at two successive discretization levels.
 }

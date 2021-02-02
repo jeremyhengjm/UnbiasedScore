@@ -21,9 +21,9 @@ coupled2_maximal_independent_residuals(
 \item{rand}{common uniform random variables used for the coupled resampling}
 }
 \value{
-A matrix of ancestor indexes of size ndraws x 2
+a matrix of ancestor indexes of size ndraws x 2.
 }
 \description{
 This function performs (2-way) maximally coupled multinomial resampling 
-with independent residuals on each particle system
+with independent residuals on each particle system.
 }

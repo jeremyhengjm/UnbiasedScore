@@ -1,6 +1,6 @@
 #' @rdname coupled2_kernel
 #' @title Runs a 2-coupled Markov kernel 
-#' @description Runs two coupled kernels that leaves smoothing distribution (at each discretization level) invariant 
+#' @description Runs two coupled kernels that leaves smoothing distribution (at each discretization level) invariant. 
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization list containing stepsize, nsteps, statelength and obstimes
@@ -16,7 +16,7 @@
 #' \code{\link{CBSPF}} for conditional backward sampling particle filter
 #' @param treestorage logical specifying tree storage of Jacob, Murray and Rubenthaler (2013);
 #' if missing, this function store all states and ancestors
-#' @return a pair of new trajectories stored as matrices of size xdimension x statelength
+#' @return a pair of new trajectories stored as matrices of size xdimension x statelength.
 #' @export
 coupled2_kernel <- function(model, theta, discretization, observations, nparticles, resampling_threshold = 1, coupled_resampling, 
                          ref_trajectory1, ref_trajectory2, algorithm = "CPF", treestorage = FALSE){

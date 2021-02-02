@@ -1,6 +1,6 @@
 #' @rdname coupled4_kernel
 #' @title Runs a 4-coupled Markov kernel 
-#' @description Runs four coupled kernels (two at each discretization level) that leaves smoothing distribution at corresponding level invariant
+#' @description Runs four coupled kernels (two at each discretization level) that leaves smoothing distribution at corresponding level invariant.
 #' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
 #' @param theta a vector of parameters as input to model functions
 #' @param discretization lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
@@ -19,7 +19,7 @@
 #' \code{\link{CBSPF}} for conditional backward sampling particle filter
 #' @param treestorage logical specifying tree storage of Jacob, Murray and Rubenthaler (2013);
 #' if missing, this function store all states and ancestors
-#' @return four new trajectories stored as matrices of size xdimension x statelength_coarse/fine
+#' @return four new trajectories stored as matrices of size xdimension x statelength_coarse/fine.
 #' @export
 coupled4_kernel <- function(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling,
                             ref_trajectory_coarse1, ref_trajectory_coarse2,

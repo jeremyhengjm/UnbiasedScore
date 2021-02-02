@@ -58,10 +58,10 @@ e.g. by calling \code{\link{compute_level_distribution}}}
 \item{mcmc_iter}{use unbiased estimate if mcmc_iter == 0 or mcmc estimate at maximum_level with mcmc_iter iterations if mcmc_iter > 0}
 }
 \value{
-a list with objects such as 
-theta parameters at the last SGD iteration
-trajectory parameters across the SGD iterations
+a list with objects such as: 
+\code{theta} parameters at the last SGD iteration;
+\code{trajectory} parameters across the SGD iterations.
 }
 \description{
-Run a stochastic gradient descent using unbiased estimator of the gradient of the log-likelihood
+Run a stochastic gradient descent using unbiased score estimator.
 }

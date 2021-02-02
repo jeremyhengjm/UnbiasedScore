@@ -49,12 +49,12 @@ single_term(
 e.g. by calling \code{\link{compute_level_distribution}}}
 }
 \value{
-a list with objects such as 
-random_level is the random level to truncated infinite sum 
-unbiasedestimator is an unbiased estimator of the gradient of the log-likelihood
-cost is the cost to compute the single-term estimator
-elapsedtime is the time taken to compute the single-term estimator
+a list with objects such as: 
+\code{random_level} is the random level to truncated infinite sum; 
+\code{unbiasedestimator} is an unbiased estimator of the gradient of the log-likelihood;
+\code{cost} is the cost to compute the single-term estimator; 
+\code{elapsedtime} is the time taken to compute the single-term estimator.
 }
 \description{
-Estimates the score function using the single-term estimator of Rhee and Glynn (2015)
+Estimates the score function using the single-term estimator of Rhee and Glynn (2015).
 }
