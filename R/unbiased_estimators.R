@@ -261,3 +261,97 @@ stratified_estimator <- function(model, theta, observations, nparticles, resampl
   
 }
 
+#' @rdname systematic_estimator
+#' @title Unbiased estimators of the score function based on systematic sampling
+#' @description Estimates the score function using the unbiased stratified estimators of Vihola (2018)
+#' @param model a list representing a hidden Markov model, e.g. \code{\link{hmm_ornstein_uhlenbeck}}
+#' @param theta a vector of parameters as input to model functions
+#' @param observations a matrix of observations of size nobservations x ydimension
+#' @param nparticles number of particles
+#' @param resampling_threshold ESS proportion below which resampling is triggered (always resample at observation times by default)
+#' @param coupled2_resampling a 2-marginal coupled resampling scheme, such as \code{\link{coupled2_maximal_independent_residuals}}
+#' @param coupled4_resampling a 4-marginal coupled resampling scheme, such as \code{\link{coupled4_maximalchains_maximallevels_independent_residuals}}
+#' @param initialization choice of distribution to initialize chains, such as \code{dynamics} or the default \code{particlefilter} 
+#' @param algorithm character specifying type of algorithm desired, i.e. 
+#' \code{\link{CPF}} for conditional particle filter, 
+#' \code{\link{CASPF}} for conditional ancestor sampling particle filter,
+#' \code{\link{CBSPF}} for conditional backward sampling particle filter
+#' @param k iteration at which to start averaging (default to 0)
+#' @param m iteration at which to stop averaging (default to 1)
+#' @param level_distribution list containing mass_function and tail_function that specify the distribution of levels, 
+#' e.g. by calling \code{\link{compute_level_distribution}} 
+#' @param maxnrepeats maximum number of replicates to be stratified
+#' @return a list with objects such as: 
+#' \code{nlevel_repeats} is a matrix of the number of repetitions on each level;
+#' \code{unbiasedestimator} is a matrix of unbiased estimators of the gradient of the log-likelihood;
+#' \code{cost} is a vector of cost to compute the unbiased estimators;
+#' \code{elapsedtime} is the time taken to compute the estimators.
+#' @export
+systematic_estimator <- function(model, theta, observations, nparticles, resampling_threshold = 1, coupled2_resampling, coupled4_resampling, 
+                                 initialization = "particlefilter", algorithm = "CPF", k = 0, m = 1, level_distribution, 
+                                 maxnrepeats){
+  
+  # start timer
+  tic()
+  
+  # sample random level to truncated infinite sum
+  grid_nrepeats <- 1:maxnrepeats
+  fixed_uniform <- runif(1)
+  nlevel_repeats <- matrix(0, nrow = maxnrepeats, ncol = length(level_distribution$support))
+  minimum_level <- min(level_distribution$support)
+  for (nrepeats in 1:maxnrepeats){
+    lower_limit <- (0:(nrepeats-1)) / nrepeats
+    uniforms <- lower_limit + fixed_uniform / nrepeats
+    random_level <- multinomial_resampling(level_distribution$mass_function, nrepeats, uniforms) - 1 + minimum_level
+    nlevel_repeats[nrepeats, ] <- sapply(level_distribution$support, function(l) sum(random_level >= l))
+  }
+
+  # minimum level
+  # initialize estimate by computing gradient at coarsest discretization level
+  discretization <- model$construct_discretization(minimum_level)
+  cat("running minimum level", "\n")
+  theta_dimension <- model$theta_dimension
+  cumsum_estimator <- matrix(0, nrow = maxnrepeats, ncol = theta_dimension)
+  cost <- rep(0, maxnrepeats) 
+  nreps <- nlevel_repeats[maxnrepeats, 1]
+  if (nreps > 0){
+    for (irep in 1:nreps){
+      score <- unbiased_discretized_score(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling,
+                                          initialization, algorithm, k = k, m = m, max_iterations = Inf)
+      index <- (nlevel_repeats[, 1] >= irep)
+      cost[index] <- cost[index] + nparticles * discretization$nsteps * score$cost
+      cumsum_estimator[index, ] <- cumsum_estimator[index, ] + score$unbiasedestimator 
+    }
+  }
+  estimator <- sweep(cumsum_estimator, 1, grid_nrepeats * level_distribution$tail_function[1], FUN = "/")
+  cat("minimum level completed", "\n")
+  
+  maximum_level <- max(level_distribution$support) 
+  for (level in (minimum_level+1):maximum_level){
+    cumsum_estimator <- matrix(0, nrow = maxnrepeats, ncol = theta_dimension)
+    nreps <- nlevel_repeats[maxnrepeats, level-minimum_level+1]
+    if (nreps > 0){
+      for (irep in 1:nreps){
+        cat("running level", level, "\n")
+        discretization <- model$construct_successive_discretization(level)
+        score_increment <- unbiased_score_increment(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling, coupled4_resampling,
+                                                    initialization, algorithm, k = k, m = m, max_iterations = Inf)
+        cat("completed", "\n")
+        index <- (nlevel_repeats[, level-minimum_level+1] >= irep)
+        cost[index] <- cost[index] + nparticles * discretization$coarse$nsteps * score_increment$cost_coarse
+        cost[index] <- cost[index] + nparticles * discretization$fine$nsteps * score_increment$cost_fine
+        cumsum_estimator[index, ] <- cumsum_estimator[index, ] + score_increment$unbiasedestimator
+      }
+    }
+    estimator <- estimator + sweep(cumsum_estimator, 1, grid_nrepeats * level_distribution$tail_function[level-minimum_level+1], FUN = "/")
+  }
+  
+  # end timer and compute elapsed time
+  timer <- toc(quiet = TRUE)
+  elapsedtime <- timer$toc - timer$tic
+  
+  return(list(nlevel_repeats = nlevel_repeats, unbiasedestimator = estimator, 
+              cost = cost, elapsedtime = elapsedtime))
+  
+}
+
