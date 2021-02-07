@@ -320,7 +320,11 @@ systematic_estimator <- function(model, theta, observations, nparticles, resampl
                                           initialization, algorithm, k = k, m = m, max_iterations = Inf)
       index <- (nlevel_repeats[, 1] >= irep)
       cost[index] <- cost[index] + nparticles * discretization$nsteps * score$cost
-      cumsum_estimator[index, ] <- cumsum_estimator[index, ] + score$unbiasedestimator 
+      if (sum(index) == 1){
+        cumsum_estimator[index, ] <- cumsum_estimator[index, ] + score$unbiasedestimator
+      } else {
+        cumsum_estimator[index, ] <- sweep(cumsum_estimator[index, ], 2, score$unbiasedestimator, FUN = "+")
+      }
     }
   }
   estimator <- sweep(cumsum_estimator, 1, grid_nrepeats * level_distribution$tail_function[1], FUN = "/")
@@ -340,7 +344,11 @@ systematic_estimator <- function(model, theta, observations, nparticles, resampl
         index <- (nlevel_repeats[, level-minimum_level+1] >= irep)
         cost[index] <- cost[index] + nparticles * discretization$coarse$nsteps * score_increment$cost_coarse
         cost[index] <- cost[index] + nparticles * discretization$fine$nsteps * score_increment$cost_fine
-        cumsum_estimator[index, ] <- cumsum_estimator[index, ] + score_increment$unbiasedestimator
+        if (sum(index) == 1){
+          cumsum_estimator[index, ] <- cumsum_estimator[index, ] + score_increment$unbiasedestimator
+        } else {
+          cumsum_estimator[index, ] <- sweep(cumsum_estimator[index, ], 2, score_increment$unbiasedestimator, FUN = "+")
+        }
       }
     }
     estimator <- estimator + sweep(cumsum_estimator, 1, grid_nrepeats * level_distribution$tail_function[level-minimum_level+1], FUN = "/")
