@@ -1,0 +1,5 @@
+Ornstein-Uhlenbeck process
+- Run demo.R to experiment with various functions for this example.
+- Run simulate_observations.R to create simulated data.
+- Run scripts with filenames starting with "simulate" to generate results that are saved in the results folder. 
+- Run scripts with filenames starting with "plot" to create plots of the results. 
