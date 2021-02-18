@@ -1,4 +1,5 @@
 Ornstein-Uhlenbeck process
+- The function hmm_ornstein_uhlenbeck creates a hidden Markov model for this example. 
 - Run demo.R to experiment with various functions for this example.
 - Run simulate_observations.R to create simulated data.
 - Run scripts with filenames starting with "simulate" to generate results that are saved in the results folder. 
