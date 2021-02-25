@@ -24,7 +24,7 @@ hmm_logistic_diffusion_full <- function(times){
   # parameters of the model
   theta_dimension <- 4 # inferring diffusivity parameter
   
-  is_discrete_observation <- T
+  is_discrete_observation <- TRUE
   
   # time intervals
   time_intervals <- diff(times)
