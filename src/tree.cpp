@@ -1,4 +1,4 @@
-#include <RcppEigen.h>
+#include <Rcpp.h>
 #include "tree.h"
 using namespace Rcpp;
 using namespace std;

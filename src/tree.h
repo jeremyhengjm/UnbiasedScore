@@ -1,6 +1,6 @@
 #ifndef _INCL_BushT_
 #define _INCL_BushT_
-#include <RcppEigen.h>
+#include <Rcpp.h>
 using namespace Rcpp;
 
 class Tree

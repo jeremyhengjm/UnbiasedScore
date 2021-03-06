@@ -8,5 +8,5 @@ Maintainer: Jeremy Heng <jeremyhengjm@gmail.com>
 Description: This R package provides unbiased estimators of the score function, i.e. the gradient of the log-likelihood for a class of partially observed diffusions.
 License: GPL (>= 2)
 Imports: Rcpp (>= 1.0.3)
-LinkingTo: Rcpp, RcppEigen, tictoc
+LinkingTo: Rcpp, tictoc
 RoxygenNote: 7.1.0
