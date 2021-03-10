@@ -32,7 +32,7 @@ g <- ggplot(plot.df, aes(x = level, y = stoppingtime)) + geom_boxplot(aes(group 
   xlab("level") + ylab("stopping time")
 g
 ggsave(filename = "~/Dropbox/UnbiasedGradients/draft/arXiv-v1/ou_stoppingtimes_levels.eps",
-plot = g, device = "eps", width = 8, height = 8)
+       plot = g, device = "eps", width = 8, height = 8)
 
 # median and 90% quantile of stoppingtimes at each discretization level
 ddply(plot.df, c("level", "resampling"), summarise, 

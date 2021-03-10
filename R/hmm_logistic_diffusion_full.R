@@ -6,6 +6,8 @@
 #' \code{xdimension} is the dimension of the latent process; 
 #' \code{ydimension} is the dimension of the observation process; 
 #' \code{theta_dimension} is the dimension of the parameter space; 
+#' \code{theta_names} is a vector of characters to enumerate the parameters;
+#' \code{theta_positivity} is a vector logicals to index parameters with positivity constraints;
 #' \code{construct_discretization} outputs a list containing stepsize, nsteps, statelength and obstimes; 
 #' \code{construct_successive_discretization} outputs lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
 #' and coarsetimes of length statelength_fine indexing time steps of coarse level;
@@ -23,6 +25,11 @@ hmm_logistic_diffusion_full <- function(times){
   
   # parameters of the model
   theta_dimension <- 4 # inferring diffusivity parameter
+  theta_names <- NULL
+  for (j in 1:theta_dimension){
+    theta_names <- c(theta_names, paste("theta", j, sep = ""))
+  }
+  theta_positivity <- c(FALSE, TRUE, TRUE, TRUE)
   
   is_discrete_observation <- TRUE
   
@@ -239,6 +246,8 @@ hmm_logistic_diffusion_full <- function(times){
   model <- list(xdimension = xdimension,
                 ydimension = ydimension,
                 theta_dimension = theta_dimension,
+                theta_names = theta_names,
+                theta_positivity = theta_positivity,
                 is_discrete_observation = is_discrete_observation,
                 construct_discretization = construct_discretization,
                 construct_successive_discretization = construct_successive_discretization,
