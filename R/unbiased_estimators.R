@@ -139,6 +139,7 @@ independent_sum <- function(model, theta, observations, nparticles, resampling_t
   cat("running minimum level", "\n")
   score <- unbiased_discretized_score(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling, 
                                       initialization, algorithm, k = k, m = m, max_iterations = Inf)
+  cat("meeting time:", score$meetingtime, "\n")
   cat("minimum level completed", "\n")
   estimator <- score$unbiasedestimator
   cost <- nparticles * discretization$nsteps * score$cost 
@@ -154,6 +155,7 @@ independent_sum <- function(model, theta, observations, nparticles, resampling_t
       discretization <- model$construct_successive_discretization(level)
       score_increment <- unbiased_score_increment(model, theta, discretization, observations, nparticles, resampling_threshold, coupled2_resampling, coupled4_resampling, 
                                                   initialization, algorithm, k = k, m = m, max_iterations = Inf)
+      cat("stopping time:", max(score_increment$meetingtime_coarse, score_increment$meetingtime_fine), "\n")
       cat("completed", "\n")
       cost <- cost + nparticles * discretization$coarse$nsteps * score_increment$cost_coarse
       cost <- cost + nparticles * discretization$fine$nsteps * score_increment$cost_fine
