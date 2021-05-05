@@ -234,7 +234,6 @@ unbiased_score_increment <- function(model, theta, discretization, observations,
     
     # increment counter
     iter <- iter + 1
-    #cat("unb_grad_incr: iter", iter , "\n")
     
     # sample from 4-way coupled CPF kernel
     coupled4 <- coupled4_kernel(model, theta, discretization, observations, nparticles, resampling_threshold, coupled4_resampling,

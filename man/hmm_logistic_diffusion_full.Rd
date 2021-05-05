@@ -14,6 +14,8 @@ a list with objects such as:
 \code{xdimension} is the dimension of the latent process; 
 \code{ydimension} is the dimension of the observation process; 
 \code{theta_dimension} is the dimension of the parameter space; 
+\code{theta_names} is a vector of characters to enumerate the parameters;
+\code{theta_positivity} is a vector logicals to index parameters with positivity constraints;
 \code{construct_discretization} outputs a list containing stepsize, nsteps, statelength and obstimes; 
 \code{construct_successive_discretization} outputs lists containing stepsize, nsteps, statelength, obstimes for fine and coarse levels, 
 and coarsetimes of length statelength_fine indexing time steps of coarse level;

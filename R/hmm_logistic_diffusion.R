@@ -24,6 +24,11 @@ hmm_logistic_diffusion <- function(times, sigma0){
   
   # parameters of the model
   theta_dimension <- 3 # not inferring diffusivity parameter
+  theta_names <- NULL
+  for (j in 1:theta_dimension){
+    theta_names <- c(theta_names, paste("theta", j, sep = ""))
+  }
+  theta_positivity <- c(FALSE, TRUE, TRUE)
   
   is_discrete_observation <- T
   
@@ -219,6 +224,8 @@ hmm_logistic_diffusion <- function(times, sigma0){
   model <- list(xdimension = xdimension,
                 ydimension = ydimension,
                 theta_dimension = theta_dimension,
+                theta_names = theta_names,
+                theta_positivity = theta_positivity,
                 is_discrete_observation = is_discrete_observation,
                 construct_discretization = construct_discretization,
                 construct_successive_discretization = construct_successive_discretization,

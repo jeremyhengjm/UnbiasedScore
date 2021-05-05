@@ -230,14 +230,16 @@ hmm_logistic_diffusion_full <- function(times){
     # loop over time 
     for (k in 1:nsteps){
       jacobian <- jacobian_drift(theta, xtrajectory[k])
-      output <- output - stepsize[k] * Omega * drift(theta, xtrajectory[k]) * jacobian  
-      output <- output + Omega * (xtrajectory[k+1] - xtrajectory[k]) * jacobian
+      tmp <- -stepsize[k] * Omega * drift(theta, xtrajectory[k]) * jacobian  
+      tmp <- tmp + Omega * (xtrajectory[k+1] - xtrajectory[k]) * jacobian
+      output <- output + tmp
       
       # observation time
       if (obstimes[k+1]){
         index_obs <- index_obs + 1
         xstate <- xtrajectory[k+1]
-        output <- output + gradient_dmeasurement(theta, stepsize, xstate, observations[index_obs, ])
+        tmp <- gradient_dmeasurement(theta, stepsize, xstate, observations[index_obs, ])
+        output <- output + tmp
       }
     }
     return(output)

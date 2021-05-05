@@ -27,10 +27,16 @@ hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2, level_observati
   
   # number of parameters to be inferred
   theta_dimension <- 12
+  theta_names <- NULL
+  for (j in 1:theta_dimension){
+    theta_names <- c(theta_names, paste("theta", j, sep = ""))
+  }
+  theta_positivity <- c(F, F, F, T, T, F,
+                        F, F, F, T, T, F)
   
   # compute observation counts given spike times
-  start_time <- 0 #floor(min(c(min(spiketimes1), min(spiketimes2))))
-  end_time <- terminal_time #ceiling(max(c(max(spiketimes1), max(spiketimes2))))
+  start_time <- 0  
+  end_time <- terminal_time 
   
   compute_observations <- function(){
     nbins <- 2^level_observation # same as time discretization
@@ -53,10 +59,8 @@ hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2, level_observati
     nsteps <- 2^level
     all_stepsizes <- rep(stepsize, nsteps)
     statelength <- nsteps + 1
-    #obstimes <- rep(TRUE, statelength) # same discretization as the latent process
-    #obstimes[1] <- FALSE # deterministic initialization 
-    
     obstimes <- rep(FALSE, statelength)
+    
     # No observation at first time step for deterministic initialization
     obs_index <- seq(2^(level-level_observation)+1, statelength, by = 2^(level-level_observation))
     obstimes[obs_index] <- TRUE
@@ -254,8 +258,6 @@ hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2, level_observati
       output[6] <- observation[1] - stepsize * sum(exp(kappa1 + x_sub_trajectory[1, ])) # w.r.t. kappa1
       output[12] <- observation[2] - stepsize * sum(exp(kappa2 + x_sub_trajectory[2, ])) # w.r.t. kappa2 
     }
-    #output[6] <- observation[1] - stepsize * exp(kappa1 + xstate[1]) # w.r.t. kappa1
-    #output[12] <- observation[2] - stepsize * exp(kappa2 + xstate[2]) # w.r.t. kappa2 
     
     return(output)
   }
@@ -310,6 +312,8 @@ hmm_neuroscience_diffusion <- function(spiketimes1, spiketimes2, level_observati
   model <- list(xdimension = xdimension,
                 ydimension = ydimension,
                 theta_dimension = theta_dimension,
+                theta_names = theta_names,
+                theta_positivity = theta_positivity,
                 is_discrete_observation = is_discrete_observation,
                 compute_observations = compute_observations, 
                 construct_discretization = construct_discretization,
