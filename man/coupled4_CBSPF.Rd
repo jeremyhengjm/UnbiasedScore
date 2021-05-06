@@ -15,7 +15,8 @@ coupled4_CBSPF(
   ref_trajectory_coarse1,
   ref_trajectory_coarse2,
   ref_trajectory_fine1,
-  ref_trajectory_fine2
+  ref_trajectory_fine2,
+  treestorage = FALSE
 )
 }
 \arguments{

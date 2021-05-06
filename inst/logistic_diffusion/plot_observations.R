@@ -17,4 +17,4 @@ g <- ggplot(kangaroo, aes(x = time)) + geom_segment(aes(x = time, y = count1, xe
   xlab("time (years)") + ylab("counts")
 
 ggsave(filename = "~/Dropbox/UnbiasedGradients/draft/arXiv-v1/logisic_diffusion_observations.eps",
-       plot = g, device = "eps", width = 8, height = 6)
+       plot = g, device = "eps", width = 9, height = 7)

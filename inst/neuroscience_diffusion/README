@@ -1,0 +1,6 @@
+Neural network model
+- The function hmm_neuroscience_diffusion creates a hidden Markov model for this example. 
+- Run demo.R to experiment with various functions for this example.
+- The dataset from Hafting et al. (2008) is stored in gridcells.RData.
+- Run scripts with filenames starting with "simulate" to generate results that are saved in the results folder. 
+- Run scripts with filenames starting with "plot" to create plots of the results. 

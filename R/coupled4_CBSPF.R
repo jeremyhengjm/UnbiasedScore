@@ -16,7 +16,8 @@
 #' @return four new trajectories stored as matrices of size xdimension x statelength_coarse/fine.
 #' @export
 coupled4_CBSPF <- function(model, theta, discretization, observations, nparticles, resampling_threshold, coupled_resampling,
-                         ref_trajectory_coarse1, ref_trajectory_coarse2, ref_trajectory_fine1, ref_trajectory_fine2){
+                       ref_trajectory_coarse1, ref_trajectory_coarse2,
+                       ref_trajectory_fine1, ref_trajectory_fine2, treestorage = FALSE){
   
   # get model/problem settings 
   nobservations <- nrow(observations)
@@ -37,20 +38,49 @@ coupled4_CBSPF <- function(model, theta, discretization, observations, nparticle
   meet_fine <- all(ref_trajectory_fine1 == ref_trajectory_fine2)
   
   # create tree representation of the trajectories or store all states and ancestors
-  xtrajectory_coarse1 <- array(0, dim = c(statelength_coarse, xdimension, nparticles))
-  xtrajectory_coarse2 <- array(0, dim = c(statelength_coarse, xdimension, nparticles))
-  ancestries_coarse1 <- matrix(0, nrow = statelength_coarse, ncol = nparticles)
-  ancestries_coarse2 <- matrix(0, nrow = statelength_coarse, ncol = nparticles)
-  store_logweights_coarse1 <- matrix(0, nrow = nobservations, ncol = nparticles)
-  store_logweights_coarse2 <- matrix(0, nrow = nobservations, ncol = nparticles)
+  if (meet_coarse){
+    if (treestorage){
+      Tree_coarse1 <- new(TreeClass, nparticles, 10*nparticles*xdimension, xdimension) # only store one tree in this case
+    } else {
+      xtrajectory_coarse1 <- array(0, dim = c(statelength_coarse, xdimension, nparticles))
+      ancestries_coarse1 <- matrix(0, nrow = statelength_coarse, ncol = nparticles)
+      store_logweights_coarse1 <- matrix(0, nrow = nobservations, ncol = nparticles)
+    }
+  } else {
+    if (treestorage){
+      Tree_coarse1 <- new(TreeClass, nparticles, 10*nparticles*xdimension, xdimension)
+      Tree_coarse2 <- new(TreeClass, nparticles, 10*nparticles*xdimension, xdimension)
+    } else {
+      xtrajectory_coarse1 <- array(0, dim = c(statelength_coarse, xdimension, nparticles))
+      xtrajectory_coarse2 <- array(0, dim = c(statelength_coarse, xdimension, nparticles))
+      ancestries_coarse1 <- matrix(0, nrow = statelength_coarse, ncol = nparticles)
+      ancestries_coarse2 <- matrix(0, nrow = statelength_coarse, ncol = nparticles)
+      store_logweights_coarse1 <- matrix(0, nrow = nobservations, ncol = nparticles)
+      store_logweights_coarse2 <- matrix(0, nrow = nobservations, ncol = nparticles)
+    }
+  }
   
-  xtrajectory_fine1 <- array(0, dim = c(statelength_fine, xdimension, nparticles))
-  xtrajectory_fine2 <- array(0, dim = c(statelength_fine, xdimension, nparticles))
-  ancestries_fine1 <- matrix(0, nrow = statelength_fine, ncol = nparticles)
-  ancestries_fine2 <- matrix(0, nrow = statelength_fine, ncol = nparticles)
-  store_logweights_fine1 <- matrix(0, nrow = nobservations, ncol = nparticles)
-  store_logweights_fine2 <- matrix(0, nrow = nobservations, ncol = nparticles)
-  
+  if (meet_fine){
+    if (treestorage){
+      Tree_fine1 <- new(TreeClass, nparticles, 10*nparticles*xdimension, xdimension) # only store one tree in this case
+    } else {
+      xtrajectory_fine1 <- array(0, dim = c(statelength_fine, xdimension, nparticles))
+      ancestries_fine1 <- matrix(0, nrow = statelength_fine, ncol = nparticles)
+      store_logweights_fine1 <- matrix(0, nrow = nobservations, ncol = nparticles)
+    }
+  } else {
+    if (treestorage){
+      Tree_fine1 <- new(TreeClass, nparticles, 10*nparticles*xdimension, xdimension)
+      Tree_fine2 <- new(TreeClass, nparticles, 10*nparticles*xdimension, xdimension)
+    } else {
+      xtrajectory_fine1 <- array(0, dim = c(statelength_fine, xdimension, nparticles))
+      xtrajectory_fine2 <- array(0, dim = c(statelength_fine, xdimension, nparticles))
+      ancestries_fine1 <- matrix(0, nrow = statelength_fine, ncol = nparticles)
+      ancestries_fine2 <- matrix(0, nrow = statelength_fine, ncol = nparticles)
+      store_logweights_fine1 <- matrix(0, nrow = nobservations, ncol = nparticles)
+      store_logweights_fine2 <- matrix(0, nrow = nobservations, ncol = nparticles)
+    }
+  }
   
   # initialization
   xparticles_coarse1 <- model$rinit(nparticles) # size: xdimension x nparticles
@@ -63,11 +93,37 @@ coupled4_CBSPF <- function(model, theta, discretization, observations, nparticle
   xparticles_fine2[, nparticles] <- ref_trajectory_fine2[, 1]
   
   # initialize tree to storage trajectories
-  xtrajectory_coarse1[1, , ] <- xparticles_coarse1
-  xtrajectory_coarse2[1, , ] <- xparticles_coarse2
-  xtrajectory_fine1[1, , ] <- xparticles_fine1
-  xtrajectory_fine2[1, , ] <- xparticles_fine2
+  if (meet_coarse){
+    if (treestorage){
+      Tree_coarse1$init(xparticles_coarse1) 
+    } else {
+      xtrajectory_coarse1[1, , ] <- xparticles_coarse1
+    }
+  } else {
+    if (treestorage){
+      Tree_coarse1$init(xparticles_coarse1) 
+      Tree_coarse2$init(xparticles_coarse2) 
+    } else {
+      xtrajectory_coarse1[1, , ] <- xparticles_coarse1
+      xtrajectory_coarse2[1, , ] <- xparticles_coarse2
+    }
+  }
   
+  if (meet_fine){
+    if (treestorage){
+      Tree_fine1$init(xparticles_fine1) 
+    } else {
+      xtrajectory_fine1[1, , ] <- xparticles_fine1
+    }
+  } else {
+    if (treestorage){
+      Tree_fine1$init(xparticles_fine1) 
+      Tree_fine2$init(xparticles_fine2) 
+    } else {
+      xtrajectory_fine1[1, , ] <- xparticles_fine1
+      xtrajectory_fine2[1, , ] <- xparticles_fine2
+    }
+  }
   logweights_coarse1 <- rep(0, nparticles)
   logweights_coarse2 <- rep(0, nparticles)
   logweights_fine1 <- rep(0, nparticles)
@@ -90,12 +146,13 @@ coupled4_CBSPF <- function(model, theta, discretization, observations, nparticle
     if (meet_fine){
       logweights_fine1 <- model$dmeasurement(theta, stepsize_fine[1], xparticles_fine1, observation)
       logweights_fine2 <- logweights_fine1
+      store_logweights_fine1[index_obs, ] <- logweights_fine1
     } else {
       logweights_fine1 <- model$dmeasurement(theta, stepsize_fine[1], xparticles_fine1, observation)
       logweights_fine2 <- model$dmeasurement(theta, stepsize_fine[1], xparticles_fine2, observation)
+      store_logweights_fine1[index_obs, ] <- logweights_fine1
+      store_logweights_fine2[index_obs, ] <- logweights_fine2
     }
-    store_logweights_fine1[index_obs, ] <- logweights_fine1
-    store_logweights_fine2[index_obs, ] <- logweights_fine2
     maxlogweights_fine1 <- max(logweights_fine1)
     maxlogweights_fine2 <- max(logweights_fine2)
     weights_fine1 <- exp(logweights_fine1 - maxlogweights_fine1)
@@ -108,12 +165,13 @@ coupled4_CBSPF <- function(model, theta, discretization, observations, nparticle
     if (meet_coarse){
       logweights_coarse1 <- model$dmeasurement(theta, stepsize_coarse[1], xparticles_coarse1, observation)
       logweights_coarse2 <- logweights_coarse1
+      store_logweights_coarse1[index_obs, ] <- logweights_coarse1
     } else {
       logweights_coarse1 <- model$dmeasurement(theta, stepsize_coarse[1], xparticles_coarse1, observation)
       logweights_coarse2 <- model$dmeasurement(theta, stepsize_coarse[1], xparticles_coarse2, observation)
+      store_logweights_coarse1[index_obs, ] <- logweights_coarse1
+      store_logweights_coarse2[index_obs, ] <- logweights_coarse2
     }
-    store_logweights_coarse1[index_obs, ] <- logweights_coarse1
-    store_logweights_coarse2[index_obs, ] <- logweights_coarse2
     maxlogweights_coarse1 <- max(logweights_coarse1)
     maxlogweights_coarse2 <- max(logweights_coarse2)
     weights_coarse1 <- exp(logweights_coarse1 - maxlogweights_coarse1)
@@ -191,18 +249,46 @@ coupled4_CBSPF <- function(model, theta, discretization, observations, nparticle
     previous_randn <- randn
     
     # update tree storage
-    xtrajectory_fine1[k+1, , ] <- xparticles_fine1
-    xtrajectory_fine2[k+1, , ] <- xparticles_fine2
-    ancestries_fine1[k, ] <- ancestors_fine1
-    ancestries_fine2[k, ] <- ancestors_fine2
+    if (meet_fine){
+      if (treestorage){
+        Tree_fine1$update(xparticles_fine1, ancestors_fine1 - 1) 
+      } else {
+        xtrajectory_fine1[k+1, , ] <- xparticles_fine1
+        ancestries_fine1[k, ] <- ancestors_fine1
+      }
+    } else {
+      if (treestorage){
+        Tree_fine1$update(xparticles_fine1, ancestors_fine1 - 1) 
+        Tree_fine2$update(xparticles_fine2, ancestors_fine2 - 1) 
+      } else {
+        xtrajectory_fine1[k+1, , ] <- xparticles_fine1
+        xtrajectory_fine2[k+1, , ] <- xparticles_fine2
+        ancestries_fine1[k, ] <- ancestors_fine1
+        ancestries_fine2[k, ] <- ancestors_fine2
+      }
+    }
     ancestors_fine1 <- 1:nparticles
     ancestors_fine2 <- 1:nparticles
     
     if (coarsetimes[k+1]){
-      xtrajectory_coarse1[index_coarse+1, , ] <- xparticles_coarse1
-      xtrajectory_coarse2[index_coarse+1, , ] <- xparticles_coarse2
-      ancestries_coarse1[index_coarse, ] <- ancestors_coarse1
-      ancestries_coarse2[index_coarse, ] <- ancestors_coarse2
+      if (meet_coarse){
+        if (treestorage){
+          Tree_coarse1$update(xparticles_coarse1, ancestors_coarse1 - 1) 
+        } else {
+          xtrajectory_coarse1[index_coarse+1, , ] <- xparticles_coarse1
+          ancestries_coarse1[index_coarse, ] <- ancestors_coarse1
+        }
+      } else {
+        if (treestorage){
+          Tree_coarse1$update(xparticles_coarse1, ancestors_coarse1 - 1) 
+          Tree_coarse2$update(xparticles_coarse2, ancestors_coarse2 - 1) 
+        } else {
+          xtrajectory_coarse1[index_coarse+1, , ] <- xparticles_coarse1
+          xtrajectory_coarse2[index_coarse+1, , ] <- xparticles_coarse2
+          ancestries_coarse1[index_coarse, ] <- ancestors_coarse1
+          ancestries_coarse2[index_coarse, ] <- ancestors_coarse2
+        }
+      }
       ancestors_coarse1 <- 1:nparticles
       ancestors_coarse2 <- 1:nparticles
     }
@@ -211,9 +297,6 @@ coupled4_CBSPF <- function(model, theta, discretization, observations, nparticle
       # compute weights
       index_obs <- index_obs + 1
       observation <- observations[index_obs, ] # 1 x ydimension 
-      
-      
-      # # # ADDED PART # # #
       
       if (model$is_discrete_observation){
         # observation only depends on current particles in a discrete model
@@ -239,17 +322,16 @@ coupled4_CBSPF <- function(model, theta, discretization, observations, nparticle
           logweights_fine1 <- logweights_fine1 + model$dmeasurement(theta, stepsize_fine[k], x_sub_trajectory1, observation)
           logweights_fine2 <- logweights_fine2 + model$dmeasurement(theta, stepsize_fine[k], x_sub_trajectory2, observation)
         }
-        
       }
       
-      # index last observation
-      last_obs_fine <- k + 1
+      if (meet_fine){
+        store_logweights_fine1[index_obs, ] <- logweights_fine1
+      } else {
+        store_logweights_fine1[index_obs, ] <- logweights_fine1
+        store_logweights_fine2[index_obs, ] <- logweights_fine2
+      }
       
-      # # # END ADDED PART # # #
-      
-      store_logweights_fine1[index_obs, ] <- logweights_fine1
-      store_logweights_fine2[index_obs, ] <- logweights_fine2
-      
+      last_obs_fine <- k + 1 # index last observation
       maxlogweights_fine1 <- max(logweights_fine1)
       maxlogweights_fine2 <- max(logweights_fine2)
       weights_fine1 <- exp(logweights_fine1 - maxlogweights_fine1)
@@ -258,9 +340,6 @@ coupled4_CBSPF <- function(model, theta, discretization, observations, nparticle
       normweights_fine2 <- weights_fine2 / sum(weights_fine2)
       ess_fine1 <- 1 / sum(normweights_fine1^2)
       ess_fine2 <- 1 / sum(normweights_fine2^2)
-      
-      
-      # # # ADDED PART # # #
       
       if (model$is_discrete_observation){
         # observation only depends on current particles in a discrete model
@@ -286,17 +365,16 @@ coupled4_CBSPF <- function(model, theta, discretization, observations, nparticle
           logweights_coarse1 <- logweights_coarse1 + model$dmeasurement(theta, stepsize_coarse[index_coarse], x_sub_trajectory1, observation)
           logweights_coarse2 <- logweights_coarse2 + model$dmeasurement(theta, stepsize_coarse[index_coarse], x_sub_trajectory2, observation)
         }
-        
       }
       
-      # index last observation
-      last_obs_coarse <- index_coarse + 1
+      if (meet_coarse){
+        store_logweights_coarse1[index_obs, ] <- logweights_coarse1
+      } else {
+        store_logweights_coarse1[index_obs, ] <- logweights_coarse1
+        store_logweights_coarse2[index_obs, ] <- logweights_coarse2
+      }
       
-      # # # END ADDED PART # # #
-      
-      store_logweights_coarse1[index_obs, ] <- logweights_coarse1
-      store_logweights_coarse2[index_obs, ] <- logweights_coarse2
-      
+      last_obs_coarse <- index_coarse + 1 # index last observation
       maxlogweights_coarse1 <- max(logweights_coarse1)
       maxlogweights_coarse2 <- max(logweights_coarse2)
       weights_coarse1 <- exp(logweights_coarse1 - maxlogweights_coarse1)
@@ -331,32 +409,6 @@ coupled4_CBSPF <- function(model, theta, discretization, observations, nparticle
     }
   }
   
-  # draw a pair of trajectories 
-  # rand <- runif(1)
-  # ancestor <- coupled_resampling(normweights_coarse1, normweights_coarse2, 
-  #                                normweights_fine1, normweights_fine2, 
-  #                                1, rand)
-  # ancestor_coarse1 <- ancestor[, 1]
-  # ancestor_coarse2 <- ancestor[, 2]
-  # ancestor_fine1 <- ancestor[, 3]
-  # ancestor_fine2 <- ancestor[, 4]
-  # 
-  # if (meet_coarse){
-  #   new_trajectory_coarse1 <- get_path(model, discretization$coarse, xtrajectory_coarse1, ancestries_coarse1, ancestor_coarse1)
-  #   new_trajectory_coarse2 <- new_trajectory_coarse1
-  # } else {
-  #   new_trajectory_coarse1 <- get_path(model, discretization$coarse, xtrajectory_coarse1, ancestries_coarse1, ancestor_coarse1)
-  #   new_trajectory_coarse2 <- get_path(model, discretization$coarse, xtrajectory_coarse2, ancestries_coarse2, ancestor_coarse2)
-  # }
-  # 
-  # if (meet_fine){
-  #   new_trajectory_fine1 <- get_path(model, discretization$fine, xtrajectory_fine1, ancestries_fine1, ancestor_fine1)
-  #   new_trajectory_fine2 <- new_trajectory_fine1
-  # } else {
-  #   new_trajectory_fine1 <- get_path(model, discretization$fine, xtrajectory_fine1, ancestries_fine1, ancestor_fine1)
-  #   new_trajectory_fine2 <- get_path(model, discretization$fine, xtrajectory_fine2, ancestries_fine2, ancestor_fine2)
-  # }
-  
   # trace ancestry to get a path
   new_trajectory_coarse1 <- matrix(0, nrow = xdimension, ncol = statelength_coarse)
   new_trajectory_coarse2 <- matrix(0, nrow = xdimension, ncol = statelength_coarse)
@@ -369,9 +421,13 @@ coupled4_CBSPF <- function(model, theta, discretization, observations, nparticle
   particle_index_fine1 <- particle_index[, 3]
   particle_index_fine2 <- particle_index[, 4]
   new_trajectory_coarse1[, statelength_coarse] <- xtrajectory_coarse1[statelength_coarse, , particle_index_coarse1]
-  new_trajectory_coarse2[, statelength_coarse] <- xtrajectory_coarse2[statelength_coarse, , particle_index_coarse2]
+  if (!meet_coarse){
+    new_trajectory_coarse2[, statelength_coarse] <- xtrajectory_coarse2[statelength_coarse, , particle_index_coarse2]
+  }
   new_trajectory_fine1[, statelength_fine] <- xtrajectory_fine1[statelength_fine, , particle_index_fine1]
-  new_trajectory_fine2[, statelength_fine] <- xtrajectory_fine2[statelength_fine, , particle_index_fine2]
+  if (!meet_fine){
+    new_trajectory_fine2[, statelength_fine] <- xtrajectory_fine2[statelength_fine, , particle_index_fine2]
+  }
   index_obs <- sum(obstimes)
   index_coarse <- sum(coarsetimes) - 1
   
@@ -389,12 +445,16 @@ coupled4_CBSPF <- function(model, theta, discretization, observations, nparticle
       bs_weights_coarse1 <- exp(bs_logweights_coarse1 - bs_maxlogweights_coarse1)
       bs_normweights_coarse1 <- bs_weights_coarse1 / sum(bs_weights_coarse1)
       
-      logweights_coarse2 <- store_logweights_coarse2[index_obs, ]
-      bs_logweights_coarse2 <- logweights_coarse2 + model$dtransition(theta, stepsize_coarse[index_coarse],
-                                                                      xtrajectory_coarse2[index_coarse, , ], new_trajectory_coarse2[, index_coarse+1])
-      bs_maxlogweights_coarse2 <- max(bs_logweights_coarse2)
-      bs_weights_coarse2 <- exp(bs_logweights_coarse2 - bs_maxlogweights_coarse2)
-      bs_normweights_coarse2 <- bs_weights_coarse2 / sum(bs_weights_coarse2)
+      if (meet_coarse){
+        bs_normweights_coarse2 <- bs_normweights_coarse1
+      }  else {
+        logweights_coarse2 <- store_logweights_coarse2[index_obs, ]
+        bs_logweights_coarse2 <- logweights_coarse2 + model$dtransition(theta, stepsize_coarse[index_coarse],
+                                                                        xtrajectory_coarse2[index_coarse, , ], new_trajectory_coarse2[, index_coarse+1])
+        bs_maxlogweights_coarse2 <- max(bs_logweights_coarse2)
+        bs_weights_coarse2 <- exp(bs_logweights_coarse2 - bs_maxlogweights_coarse2)
+        bs_normweights_coarse2 <- bs_weights_coarse2 / sum(bs_weights_coarse2)
+      }
       
       logweights_fine1 <- store_logweights_fine1[index_obs, ]
       bs_logweights_fine1 <- logweights_fine1 + model$dtransition(theta, stepsize_fine[k], xtrajectory_fine1[k, , ], new_trajectory_fine1[, k+1])
@@ -402,11 +462,15 @@ coupled4_CBSPF <- function(model, theta, discretization, observations, nparticle
       bs_weights_fine1 <- exp(bs_logweights_fine1 - bs_maxlogweights_fine1)
       bs_normweights_fine1 <- bs_weights_fine1 / sum(bs_weights_fine1)
       
-      logweights_fine2 <- store_logweights_fine2[index_obs, ]
-      bs_logweights_fine2 <- logweights_fine2 + model$dtransition(theta, stepsize_fine[k], xtrajectory_fine2[k, , ], new_trajectory_fine2[, k+1])
-      bs_maxlogweights_fine2 <- max(bs_logweights_fine2)
-      bs_weights_fine2 <- exp(bs_logweights_fine2 - bs_maxlogweights_fine2)
-      bs_normweights_fine2 <- bs_weights_fine2 / sum(bs_weights_fine2)
+      if (meet_fine){
+        bs_normweights_fine2 <- bs_normweights_fine1
+      } else {
+        logweights_fine2 <- store_logweights_fine2[index_obs, ]
+        bs_logweights_fine2 <- logweights_fine2 + model$dtransition(theta, stepsize_fine[k], xtrajectory_fine2[k, , ], new_trajectory_fine2[, k+1])
+        bs_maxlogweights_fine2 <- max(bs_logweights_fine2)
+        bs_weights_fine2 <- exp(bs_logweights_fine2 - bs_maxlogweights_fine2)
+        bs_normweights_fine2 <- bs_weights_fine2 / sum(bs_weights_fine2)
+      }
       
       index_obs <- index_obs - 1
       
@@ -419,21 +483,27 @@ coupled4_CBSPF <- function(model, theta, discretization, observations, nparticle
     } else {
       if (coarsetimes[k]){
         particle_index_coarse1 <- ancestries_coarse1[index_coarse, particle_index_coarse1]
-        particle_index_coarse2 <- ancestries_coarse2[index_coarse, particle_index_coarse2]
+        if (!meet_coarse) particle_index_coarse2 <- ancestries_coarse2[index_coarse, particle_index_coarse2]
+        
       }
       particle_index_fine1 <- ancestries_fine1[k, particle_index_fine1]
-      particle_index_fine2 <- ancestries_fine2[k, particle_index_fine2]
+      if (!meet_fine) particle_index_fine2 <- ancestries_fine2[k, particle_index_fine2]
     }
     if (coarsetimes[k]){
       new_trajectory_coarse1[, index_coarse] <- xtrajectory_coarse1[index_coarse, , particle_index_coarse1]
-      new_trajectory_coarse2[, index_coarse] <- xtrajectory_coarse2[index_coarse, , particle_index_coarse2]
+      if (!meet_coarse) new_trajectory_coarse2[, index_coarse] <- xtrajectory_coarse2[index_coarse, , particle_index_coarse2]
       # decrement index of coarse steps
       index_coarse <- index_coarse - 1 
     }
     new_trajectory_fine1[, k] <- xtrajectory_fine1[k, , particle_index_fine1]
-    new_trajectory_fine2[, k] <- xtrajectory_fine2[k, , particle_index_fine2]
-    
+    if (!meet_fine) new_trajectory_fine2[, k] <- xtrajectory_fine2[k, , particle_index_fine2]
   }
+  
+  if (meet_fine) new_trajectory_fine2 <- new_trajectory_fine1
+  if (meet_coarse) new_trajectory_coarse2 <- new_trajectory_coarse1
+
+  
+  # cat(index_coarse, new_trajectory_coarse1 -  new_trajectory_coarse2, "\n")
   
   return(list(new_trajectory_coarse1 = new_trajectory_coarse1, new_trajectory_coarse2 = new_trajectory_coarse2, 
               new_trajectory_fine1 = new_trajectory_fine1, new_trajectory_fine2 = new_trajectory_fine2))
