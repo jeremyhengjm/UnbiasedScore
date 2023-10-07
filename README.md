@@ -19,8 +19,8 @@ Example 3 is an application on the data collected by [Hafting et al. (2008)](htt
 ## Getting started
 The two key functions which implements randomized multilevel Monte Carlo and return unbiased estimators of [Rhee and Glynn](https://doi.org/10.1287/opre.2015.1404) are 
 `independent_sum` (as considered in the article) and `single_term` (a simpler alternative not considered in the article). These two functions require the following input arguments:
-- `model`: a list with model-specific objects (see below for detailed description);
-- `theta`: a vector of model parameters (constrained parameters should be transformed to unconstrained ones);
+- `model`: a list of objects describing the hidden Markov model obtained by time-discretizing the diffusion process (see below for detailed description);
+- `theta`: a vector of model parameters;
 - `observations`: a matrix of observations, with rows given by the number of observations, and columns given by the dimension of the observations;
 - `nparticles`: an integer specifying number of particles in the conditional particle filter (CPF);
 - `resampling_threshold`: a numeric value between zero to one defining the effective sample size threshold below which resampling is triggered at each observation time;
@@ -33,12 +33,24 @@ or `particlefilter` for the law of a trajectory sampled from a particle filter;
 - `m`: an integer specifying a tuning parameter of our unbiased estimator which controls the iteration at which to stop averaging, taken as one by default;
 - `level_distribution`: a list containing `mass_function` and `tail_function` that specify the distribution of levels, e.g. by calling the function `compute_level_distribution`; 
 
+The `model` input is given by the output of the function `hmm_ornstein_uhlenbeck` for Example 1, the function `hmm_logistic_diffusion_full` for Example 2, 
+and the function `hmm_neuroscience_diffusion` for Example 3. Users who want to apply this package to other problems will have to write a function defining 
+the hidden Markov model that returns the following objects:
+- `xdimension`: an integer specifying the dimension of the latent diffusion process;
+- `ydimension`: an integer specifying the dimension of the observation process;
+- `theta_dimension`: an integer specifying the dimension of the parameter space;
+- `theta_names`: a vector of characters to enumerate the parameters;
+- `theta_positivity`: a vector of logicals to index parameters with positivity constraints;
+- `construct_discretization`: a function constructing time-discretization objects for a given discretization level (see the implementation in existing functions);
+- `construct_successive_discretization`: a function constructing time-discretization objects for two successive discretization levels (see the implementation in existing functions);
+- `sigma`: an object defining the diffusion coefficient of the process; 
+- `rinit`: a function to sample from the initial distribution of the diffusion process; 
+- `rtransition`: a function to sample from the Markov transition defined by the time-discretized diffusion process;
+- `dtransition`: a function to evaluate the the Markov transition defined by the time-discretized diffusion process;
+- `dmeasurement`: a function to evaluate the observation/measurement density; 
+- `functional`: a function whose conditional expectation one wants to estimate unbiasedly.
 
- 
+Add R notebook tutorial!
 
-
-
-
-Users who are interested in using this package for other problems are 
 
 
