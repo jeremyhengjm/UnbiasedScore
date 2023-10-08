@@ -9,4 +9,4 @@ Description: This R package provides unbiased estimators for a class of partiall
 License: GPL (>= 2)
 Imports: Rcpp (>= 1.0.3)
 LinkingTo: Rcpp, tictoc
-RoxygenNote: 7.1.0
+RoxygenNote: 7.2.1
