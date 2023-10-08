@@ -5,8 +5,7 @@ Version: 1.0
 Date: 2021-01-16
 Author: Jeremy Heng
 Maintainer: Jeremy Heng <jeremyhengjm@gmail.com>
-Description: This R package provides unbiased estimators for a class of partially observed diffusions. To facilitate parameter inference using stochastic gradient algorithms, we consider unbiased estimation of the score function, 
-i.e. the gradient of the log-likelihood function for these models.
+Description: This R package provides unbiased estimators for a class of partially observed diffusions. To facilitate parameter inference using stochastic gradient algorithms, we consider unbiased estimation of the score function, i.e. the gradient of the log-likelihood function for these models.
 License: GPL (>= 2)
 Imports: Rcpp (>= 1.0.3)
 LinkingTo: Rcpp, tictoc
