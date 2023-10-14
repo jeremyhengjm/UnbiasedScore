@@ -1,0 +1,102 @@
+---
+title: 'Demo: Logistic diffusion model'
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+bibliography: references.bib
+---
+
+# Setup
+We begin by starting with a clean global environment and loading some packages. 
+```{r install}
+rm(list = ls())
+# devtools::install_github("jeremyhengjm/UnbiasedScore")
+library(UnbiasedScore)
+library(ggplot2)
+library(ggthemes)
+library(tictoc)
+```
+
+# Red kangaroo dataset and model
+We consider an application from population ecology to model the dynamics of a population of red
+kangaroos (Macropus rufus) in New South Wales, Australia. Below we load the dataset from 
+[@caughley1987kangaroos], which are double transect counts on $P=41$ occasions at irregular times $(t_p)$
+between 1973 to 1984.
+
+```{r dataset}
+load("../inst/logistic_diffusion/kangaroo.RData")
+nobservations <- length(kangaroo$time)
+observations <- matrix(0, nrow = nobservations, ncol = 2)
+observations[, 1] <- kangaroo$count1
+observations[, 2] <- kangaroo$count2
+ggplot(kangaroo, aes(x = time)) +
+  geom_segment(aes(x = time, y = count1, xend = time, yend = count2), linetype = "dashed", colour = "black") +
+  geom_point(aes(y = count1)) +
+  geom_point(aes(y = count2)) +
+  xlab("time (years)") + ylab("counts")
+```
+
+The latent population size $Z=(Z_t)$ is assumed to follow a logistic diffusion process 
+with environmental variance [@dennis1988analysis], [@knape2012fitting] defined by
+$$
+	dZ_{t}=(\theta_{3}^{2}/2+\theta_{1}-\theta_{2}Z_{t})Z_{t}dt+\theta_{3}Z_{t}dW_{t}, \quad 
+	Z_{t_1}\sim{LN}(5,10^2),
+$$
+where ${LN}$ denotes the log-Normal distribution. 
+As the parameter $\theta_{3}>0$ appears in the diffusion coefficient, 
+we apply the Lamperti transformation $X_t = \log(Z_t)/\theta_3$ to obtain the process $X=(X_t)$ 
+satisfying 
+$$
+  dX_t = \{\theta_1/\theta_3-(\theta_2/\theta_3)\exp(\theta_3X_t)\}dt + dW_t,
+$$
+with normal initial distribution $X_{t_1}\sim{N}(5/\theta_3,10^2/\theta_3^{2})$. 
+The observations $(Y_{t_p})_{p=1}^P$ are modelled as conditionally independent given $X$ and 
+negative Binomial distributed, i.e. the conditional density at time $t\in\{t_1,\ldots,t_P\}$ is 
+$$
+g_{\theta}(y_t|x_t)={NB}(y_t^{1};\theta_{4},\exp(\theta_3x_t)){NB}(y_t^{2};\theta_{4},\exp(\theta_3x_t)). 
+$$ 
+Here we use the parameterization of the negative Binomial distribution that is common in ecology, 
+$$
+{NB}(y;r,\mu)=\frac{\Gamma(y+r)}{\Gamma(r)y!}(\frac{r}{r+\mu})^{r}(\frac{\mu}{r+\mu})^{y}, \quad y\in\mathbb{N}_{0},
+$$ 
+where $r>0$ is the dispersion parameter and $\mu>0$ is the mean parameter. The unknown parameters to be inferred are 
+$\theta=(\theta_1,\theta_2,\theta_3,\theta_4)\in\mathbb{R}\times(0,\infty)^3$.  
+
+We construct objects that describe this hidden Markov model using the function `hmm_logistic_diffusion_full`. 
+When defining the time-discretization, some care is required to deal with irregular observation times $(t_p)_{p=1}^P$; 
+see the implementation and article for more details. 
+
+
+```{r model}
+model <- hmm_logistic_diffusion_full(kangaroo$time)
+```
+
+# Unbiased estimation
+Below we specify all objects needed for our unbiased estimation procedure. We use the `independent_sum` estimator to obtain unbiased score approximations. Although unbiased estimators typically inflate the variance, this can be controlled using the time-averaging tuning parameters `k` and `m`. 
+```{r estimation}
+# settings
+theta <- c(2.397, 4.429e-03, 0.840, 17.631) # fix a vector of parameters
+discretization <- model$construct_successive_discretization(level = 5) # construct time-discretization objects
+nparticles <- 2^8 # number of particles
+resampling_threshold <- 0.5 # adaptive resampling threshold 
+coupled2_resampling <- coupled2_maximal_independent_residuals # Algorithm 3 of the article
+coupled4_resampling <- coupled4_maximalchains_maximallevels_independent_residuals # Algorithm 5 of the article
+initialization <- "dynamics" # choice to initialize CPF chains from time-discretized diffusion process
+algorithm <- "CPF" # standard CPF algorithm
+
+# distribution to truncate discretization level
+minimum_level <- 4
+maximum_level <- 20
+level_distribution <- compute_level_distribution(model, minimum_level, maximum_level)
+pmf.df <- data.frame(support = level_distribution$support, probability = level_distribution$mass_function)
+
+# compute independent sum estimator of score function
+score <- independent_sum(model, theta, observations, nparticles, resampling_threshold, coupled2_resampling, coupled4_resampling, 
+                         initialization, algorithm, k = 10, m = 50, level_distribution)
+score
+```
+
+
+# References
+

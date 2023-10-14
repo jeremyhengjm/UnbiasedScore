@@ -1,0 +1,135 @@
+---
+title: 'Demo: Neural network model for grid cells'
+output:
+  html_document:
+    df_print: paged
+bibliography: references.bib
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Setup
+
+We begin by starting with a clean global environment and loading some
+packages.
+
+```{r install}
+rm(list = ls())
+# devtools::install_github("jeremyhengjm/UnbiasedScore")
+library(UnbiasedScore)
+library(ggplot2)
+library(ggthemes)
+library(tictoc)
+```
+
+# Neural network model for grid cells in the medial entorhinal cortex
+
+We consider a neural network model for single neurons to analyze [grid
+cells spike data](https://www.ntnu.edu/kavli/research/grid-cell-data)
+recorded in the medial entorhinal cortex of rats that were running on a
+linear track [@hafting2008hippocampus]. The experimental data over a 
+duration of $T=20$ contains time stamps in $[0,T]$ when a spike at one 
+of the two cells is recorded using tetrodes.
+
+```{r dataset}
+load("../inst/neuroscience_diffusion/gridcells.RData")
+terminal_time <- 20
+spiketimes1 <- neuron1$ts[neuron1$ts < terminal_time]
+spiketimes2 <- neuron2$ts[neuron2$ts < terminal_time]
+```
+
+The neural states
+$Z_{t}=(Z_{t}^{1},Z_{t}^{2})$ of two grid cells that were simultaneously
+recorded is assumed to follow $$
+dZ_{t}^{1} =\left(\alpha_{1}\tanh(\beta_{1}Z_{t}^{2}+\gamma_{1})-\delta_{1}Z_{t}^{1}\right)dt+\sigma_{1}dW_{t}^{1},\\
+dZ_{t}^{2} =\left(\alpha_{2}\tanh(\beta_{2}Z_{t}^{1}+\gamma_{2})-\delta_{2}Z_{t}^{2}\right)dt+\sigma_{2}dW_{t}^{2},
+$$ for $t\in[0,T]$, where $(\alpha_{1},\alpha_{2})\in\mathbb{R}^{2}$
+controls the amplitude, $(\beta_{1},\beta_{2})\in\mathbb{R}^{2}$
+describes the connectivity between the cells,
+$(\gamma_{1},\gamma_{2})\in\mathbb{R}^{2}$ are baseline levels,
+$(\delta_{1},\delta_{2})\in(0,\infty)^{2}$ determines the strength of
+the mean reversion towards the origin. We assume $Z_{0}=(0,0)$ at the
+beginning of the experiment.
+
+To infer the unknown diffusivity parameters $(\sigma_{1},\sigma_{2})\in(0,\infty)^2$,
+we consider the transformation 
+$X_{t}=(X_{t}^{1},X_{t}^{2})=\Psi(Z_t)=(Z_{t}^{1}/\sigma_{1},Z_{t}^{2}/\sigma_{2})$. 
+The transformed process $X=(X_t)_{0\leq t\leq T}$ satisfies the SDE 
+$$
+dX_{t}^{1} =\left(\alpha_{1}\tanh(\beta_{1}\sigma_2Z_{t}^{2}+\gamma_{1})/\sigma_1-\delta_{1}Z_{t}^{1}\right)dt+dW_{t}^{1},\\
+dX_{t}^{2} =\left(\alpha_{2}\tanh(\beta_{2}\sigma_1Z_{t}^{1}+\gamma_{2})/\sigma_2-\delta_{2}Z_{t}^{2}\right)dt+dW_{t}^{2},
+$$
+with initialization $x_{\star}=(0,0)$. 
+
+Following [@{brown2005theory}], we adopt an inhomogenous Poisson
+point process to model these times. We split the observation time interval 
+$[0,T]$ into subintervals $[t_{p-1},t_p]$ for $p=1,\ldots,P$. 
+The size of these subintervals are determined by the specification of `level_observation` below. 
+The conditional likelihood of the observation model is 
+$p_{\theta}(y_{t_{1}},\ldots,y_{t_{P}}|X) = \prod_{p=1}^{P}g_{\theta}(y_{t_p}| (X_t)_{t_{p-1}\leq t\leq t_{p}})$ 
+with the intractable conditional density 
+$$
+        g_{\theta}(y_{t_p}| (X_t)_{t_{p-1}\leq t\leq t_{p}}) = 
+        \prod_{i=1}^2{Poi}\left(y_{t_p}^i;\int_{t_{p-1}}^{t_p} \lambda_i(X^i_t)dt\right),        
+$$
+where ${Poi}(y;\lambda)=\lambda^y\exp(-\lambda)/y!$ for $y\in\mathbb{N}_0$ 
+denotes the probability mass function of a Poisson distribution with rate $\lambda>0$. 
+The intensity function for grid cell $i=1,2$ is modelled as $\lambda_{i}(X_{t}^{i})=\exp(\kappa_{i}+X_{t}^{i})$,
+where $\kappa_{i}\in\mathbb{R}$ represents a baseline level. An additional complication here is that the conditional likelihood has to be approximated using time-discretization. It is conceptually straightforward to generalize the setting considered in the article to continuous-time observation models such as the present one. 
+We construct objects that describe the resulting hidden Markov model using the function `hmm_neuroscience_diffusion`. 
+
+```{r model}
+level_observation <- 6 # controls how finely we bin observed spike times 
+model <- hmm_neuroscience_diffusion(spiketimes1, spiketimes2, level_observation, terminal_time)
+```
+
+Next we plot the counts on each observation subinterval.
+
+```{r plotobs}
+counts <- model$compute_observations()
+observations <- counts$observations
+nobservations <- counts$nbins # same as time discretization
+
+gridcells <- data.frame(time = counts$time[1:nobservations], 
+                        count = observations[, 1], 
+                        cell = factor(rep(1, nobservations)))
+gridcells <- rbind(gridcells, data.frame(time = counts$time[1:nobservations], 
+                                         count = observations[, 2], 
+                                         cell = factor(rep(2, nobservations))))
+ggplot(gridcells, aes(x = time, y = count, colour = cell)) + geom_point(size = 3) + 
+  xlab("time (seconds)") + ylab("counts") + scale_color_colorblind() 
+
+```
+
+# Unbiased estimation
+
+Below we specify all objects needed for our unbiased estimation
+procedure. We use the `independent_sum` estimator to
+obtain unbiased score approximations. Although unbiased estimators
+typically inflate the variance, this can be controlled using the
+time-averaging tuning parameters `k` and `m`.
+
+```{r estimation}
+# settings
+theta <- rep(1, model$theta_dimension) # fix a vector of parameters
+discretization <- model$construct_successive_discretization(level = 13) # construct time-discretization objects
+nparticles <- 2^8 # number of particles
+resampling_threshold <- 0.5 # adaptive resampling threshold 
+coupled2_resampling <- coupled2_maximal_independent_residuals # Algorithm 3 of the article
+coupled4_resampling <- coupled4_maximalchains_maximallevels_independent_residuals # Algorithm 5 of the article
+initialization <- "dynamics" # choice to initialize CPF chains from time-discretized diffusion process
+algorithm <- "CPF" # standard CPF algorithm
+
+# distribution to truncate discretization level
+minimum_level <- 11
+maximum_level <- 15
+level_distribution <- compute_level_distribution(model, minimum_level, maximum_level)
+pmf.df <- data.frame(support = level_distribution$support, probability = level_distribution$mass_function)
+
+# compute independent sum estimator of score function
+score <- independent_sum(model, theta, observations, nparticles, resampling_threshold, coupled2_resampling, coupled4_resampling, initialization, algorithm, k = 50, m = 50, level_distribution)
+score
+```
+
+# References

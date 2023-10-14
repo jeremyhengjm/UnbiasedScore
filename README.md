@@ -50,7 +50,7 @@ the hidden Markov model that returns the following objects:
 - `dmeasurement`: a function to evaluate the observation/measurement density; 
 - `functional`: a function whose conditional expectation one wants to estimate unbiasedly.
 
-Add R notebook tutorial!
+To get familarized with the package and its numerical examples, users are strongly encouraged to go through the R notebooks `ornstein_uhlenbeck.Rmd`, `logistic_diffusion.Rmd`, and `neuroscience_diffusion.Rmd` in the folder `notebooks/`. The demo on the Ornstein-Uhlenbeck model should be read first as it serves to guide the reader through various functionalities of the package on a simple example. 
 
 
 

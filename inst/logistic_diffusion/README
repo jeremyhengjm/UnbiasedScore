@@ -1,6 +1,0 @@
-Logistic diffusion process
-- The function hmm_logistic_diffusion_full creates a hidden Markov model for this example. 
-- Run demo_fullmodel.R to experiment with various functions for this example.
-- The dataset from Caughley et al. (1987) is stored in kangaroo.RData.
-- Run scripts with filenames starting with "simulate" to generate results that are saved in the results folder. 
-- Run scripts with filenames starting with "plot" to create plots of the results. 

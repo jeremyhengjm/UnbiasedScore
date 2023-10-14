@@ -1,0 +1,166 @@
+---
+title: 'Demo: Ornstein-Uhlenbeck model'
+output:
+  html_document:
+    df_print: paged
+bibliography: references.bib
+---
+
+# Setup
+We begin by starting with a clean global environment and installing the `UnbiasedScore` R package hosted on GitHub. We then load this package some additional packages for plotting. 
+```{r install}
+rm(list = ls())
+# devtools::install_github("jeremyhengjm/UnbiasedScore")
+library(UnbiasedScore)
+library(ggplot2)
+library(ggthemes)
+library(tictoc)
+```
+
+# Model
+We consider an Ornstein--Uhlenbeck process $X=(X_t)_{0\leq t\leq T}$ in $\mathbb{R}$, defined by the SDE 
+\begin{align*}
+    dX_t = \theta_1(\theta_2-X_t)dt + \sigma dW_t, \quad  
+    X_0=0.
+\end{align*} Analytically tractability of this SDE allows us to deduce that its transition kernel on a unit interval is given by a Gaussian distribution
+\begin{align*}
+    p_{\theta}(dx_{t}|x_{t-1}) = N\left(x_{t};\theta_{2}+(x_{t-1}-\theta_{2})\exp(-\theta_{1}),
+    \frac{\sigma^{2}(1-\exp(-2\theta_{1}))}{2\theta_{1}}\right)dx_{t}.
+\end{align*} 
+As the transition kernel of most diffusion processes of practical interest is intractable, we will proceed with time-discretization of the SDE and use the exact transition kernel to benchmark our approximations. 
+We assume that the process is observed at unit times with Gaussian measurement errors, 
+i.e. $Y_t|X\sim g_{\theta}(\cdot|X_t)=N(X_t,\theta_3)$ independently for $t\in\{1,\ldots,T\}$ and some $\theta_3>0$.  
+
+We construct objects that describe this hidden Markov model on a time interval of length $T=25$ using the function `hmm_ornstein_uhlenbeck`.
+```{r model}
+terminal_time <- 25 # time length
+times <- 1:terminal_time # observation times
+nobservations <- terminal_time  # number of observations
+model <- hmm_ornstein_uhlenbeck(times)
+```
+
+Next we simulate states of the diffusion process at unit times and observations from the model with parameter $\theta=(\theta_1,\theta_2,\theta_3)=(2,7,1)$. 
+```{r simulate}
+set.seed(17) # for reproducibility
+theta <- c(2, 7, 1) # data generating parameter 
+X <- rep(0, nobservations) # states 
+Y <- rep(0, nobservations) # observations
+current_state <- model$rinit(1) # initial state
+for (k in 1:nobservations){
+  # conditional mean and standard deviation of exact transition on a unit time interval
+  conditional_mean <- theta[2] + (current_state - theta[2]) * exp(- theta[1]) 
+  conditional_sd <- model$sigma * sqrt(1 - exp(- 2 * theta[1])) / sqrt(2 * theta[1])
+  
+  # simulate from exact transition on a unit time interval
+  new_state <- conditional_mean + conditional_sd * rnorm(1)
+  
+  # store new state and observation
+  X[k] <- new_state
+  Y[k] <- new_state + sqrt(theta[3]) * rnorm(1)
+  current_state <- new_state
+}
+observations <- matrix(Y, ncol = 1)
+```
+
+As the hidden Markov model here is linear and Gaussian, we can perform Kalman smoothing to compute the first two moments of the smoothing distribution. Below we plot the simulated states and observations, and compare them with the (unconditional) prior means and smoothing means. 
+```{r kalman}
+# Kalman smoothing
+smoothing <- model$smoothing_moments(theta, observations)
+
+# plot latent and observation process
+plot.df <- data.frame(time = times, state = X, process = factor(rep("latent state", nobservations)))
+plot.df <- rbind(plot.df, data.frame(time = times, state = Y, process = factor(rep("observation", nobservations))))
+plot.df <- rbind(plot.df, data.frame(time = times, state = smoothing$post_mean, process = factor(rep("smoother", nobservations))))
+plot.df <- rbind(plot.df, data.frame(time = times, state = smoothing$prior_mean, process = factor(rep("prior", nobservations))))
+ggplot(plot.df, aes(x = time, y = state, color = process)) + geom_line() + 
+  scale_color_colorblind() + ylab("") + scale_x_continuous(breaks = times)
+```
+
+# Conditioned particle filters
+We first consider a standard particle filter before working with conditional particle filters in which an input trajectory is conditioned to survive all resampling steps. This can be implemented using the `CPF` function of the package without specifying the `ref_trajectory` argument. As input, this function requires some time-discretization objects, number of particles, and an effective sample size threshold to perform adaptive resampling. We plot the effective sample size percentage to inspect the performance of the particle filter. 
+```{r pf}
+discretization <- model$construct_discretization(level = 5) # construct time-discretization objects
+nparticles <- 2^9 # number of particles
+resampling_threshold <- 1 # adaptive resampling threshold 
+pf_output <- CPF(model, theta, discretization, observations, nparticles, resampling_threshold) # run particle filter 
+
+# effective sample size plot
+state_times <- seq(0, terminal_time, length.out = discretization$statelength)
+ess.df <- data.frame(time = state_times, ess = pf_output$ess * 100 / nparticles)
+ggplot(ess.df, aes(x = time, y = ess)) + geom_line() + 
+  labs(x = "time", y = "ESS%") + ylim(c(0, 100))
+```
+
+The `new_trajectory` drawn from the particle filter output is an approximate sample from the smoothing distribution (that is increasingly accurate as the number of particles and discretization level go to infinity). To obtain another trajectory whose distribution is closer to the desired smoothing distribution, we can call the function `CPF` to run a conditioned particle filter (CPF) with the initial trajectory as the `ref_trajectory`. We plot these two trajectories below to visualize their behaviour. Note that iteratively running CPF in this manner generates a Markov chain on the space of trajectories that converges to the smoothing distribution at the specified discretization level. 
+```{r cpf}
+init_trajectory <- pf_output$new_trajectory
+cpf_output <- CPF(model, theta, discretization, observations, nparticles, resampling_threshold, ref_trajectory = init_trajectory)
+next_trajectory <- cpf_output$new_trajectory
+traj.df <- data.frame(time = state_times, state = init_trajectory[1,], trajectory = factor(rep("initial", discretization$statelength)))
+traj.df <- rbind(traj.df, data.frame(time = state_times, state = next_trajectory[1,], trajectory = factor(rep("next", discretization$statelength))))
+ggplot(traj.df, aes(x = time, y = state, color = trajectory)) + geom_line() + 
+  scale_color_colorblind() + ylab("") + scale_x_continuous(breaks = times)
+```
+
+# Unbiased estimation
+Our unbiased estimation methodology removes the *burn-in* bias incurred when one stops at finite number of iterations and also the *time-discretization* bias incurred by fixing the discretization level. Our approach involves a new combination of the multilevel randomization schemes developed by [@mcleish2011general], [@rhee2015unbiased] and the unbiased Markov chain Monte Carlo methods of [@jacob2019smoothing], [@jacob2020unbiased]. Central to our methodology is the development of a new coupling of four CPFs between two successive discretization levels (referred to as coarse and fine levels), with a pair on each level (labelled as chains 1 and 2). This is implemented as the function `coupled4_CPF` in the package, which has the same input arguments as `CPF`, but we have to also specify a function defining a coupled resampling scheme for four CPFs `coupled4_resampling` , and four reference trajectories `ref_trajectory_coarse1`, `ref_trajectory_coarse2`, `ref_trajectory_fine1`, `ref_trajectory_fine2`. Below we demonstrate how to call `coupled4_CPF` by verifying the *faithfulness* property of the pair of chains on the coarse and fine discretization levels, i.e. once the two chains on each discretization level have met, they stay together from then on. 
+```{r 4ccpf}
+discretization <- model$construct_successive_discretization(level = 5) # construct time-discretization objects on successive levels
+coupled4_resampling <- coupled4_maximalchains_maximallevels_independent_residuals # Algorithm 5 of the article
+
+# verify faithfulness of chains on coarse level
+ref_trajectory_coarse1 <- CPF(model, theta, discretization$coarse, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
+ref_trajectory_coarse2 <- ref_trajectory_coarse1
+ref_trajectory_fine1 <- CPF(model, theta, discretization$fine, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
+ref_trajectory_fine2 <- CPF(model, theta, discretization$fine, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
+output <- coupled4_CPF(model, theta, discretization, observations, nparticles, resampling_threshold, coupled4_resampling,
+                            ref_trajectory_coarse1, ref_trajectory_coarse2, ref_trajectory_fine1, ref_trajectory_fine2)
+cat("Faithfulness on coarse level:", all(output$new_trajectory_coarse1 == output$new_trajectory_coarse2), "\n")
+
+# faithfulness of chains on fine level
+ref_trajectory_coarse1 <- CPF(model, theta, discretization$coarse, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
+ref_trajectory_coarse2 <- CPF(model, theta, discretization$coarse, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
+ref_trajectory_fine1 <- CPF(model, theta, discretization$fine, observations, nparticles, resampling_threshold, ref_trajectory = NULL)$new_trajectory
+ref_trajectory_fine2 <- ref_trajectory_fine1
+output <- coupled4_CPF(model, theta, discretization, observations, nparticles, resampling_threshold, coupled4_resampling,
+                            ref_trajectory_coarse1, ref_trajectory_coarse2, ref_trajectory_fine1, ref_trajectory_fine2)
+cat("Faithfulness on fine level:", all(output$new_trajectory_fine1 == output$new_trajectory_fine2), "\n")
+```
+
+Our method allows one to unbiasedly estimate expectations 
+$$ S(\theta) = \mathbb{E}[G_{\theta}(X) ~|~ y_{1:T}]$$ 
+of a functional $G_{\theta}(X)$ with respect to the smoothing distribution, i.e. law of the diffusion process $X$ conditioned on the observations $Y_{1:T}=y_{1:T}$. We can rewrite
+$$ S(\theta)=\sum_{l=0}^LS_l(\theta)-S_{l-1}(\theta)$$ 
+where
+$$S_l(\theta)=\mathbb{E}^l[G_{\theta}^l(X_{0:T}) ~|~ y_{1:T}]$$ 
+is an approximation of $S(\theta)$ at discretization level $l$ (with the convention $S_{-1}(\theta)=0$). To clarify the above notation, $G_{\theta}^l(X_{0:T})$ is an approximation of $G_{\theta}(X)$ at discretization level $l$, and the above expectation is with respect to smoothing distribution at discretization level $l$, i.e. the law of the time-discretization diffusion process $X_{0:T}$ conditioned on the observations $Y_{1:T}=y_{1:T}$. The idea is to unbiasedly estimate the increment $S_l(\theta)-S_{l-1}(\theta)$ in a dependent manner so that the estimated difference is small when the discretization level $l$ is large, and to perform a random truncation of the sum so that unbiasedness is retained when unbiased estimators of the increments are employed. The independent sum estimator studied in the article has the form 
+$$ \widehat{S}(\theta)= \sum_{l=0}^L (\widehat{S}_l(\theta) - \widehat{S}_{l-1}(\theta))/\mathbb{P}_l$$ 
+and is implemented in the function `independent_sum`. The randomized level $L$ is sampled from a probability mass function $(P_l)$ with cumulative tail probabilities $\mathbb{P}_l=\sum_{k\geq l}P_k$ as chosen in `compute_level_distribution` for our application. Below we visualize this distribution.
+```{r truncation}
+# distribution to truncate discretization level
+minimum_level <- 4
+maximum_level <- 20
+level_distribution <- compute_level_distribution(model, minimum_level, maximum_level)
+pmf.df <- data.frame(support = level_distribution$support, probability = level_distribution$mass_function)
+ggplot(pmf.df, aes(x = support, y = probability)) + geom_bar(stat="identity")
+```
+
+In the above, $\widehat{S}_l(\theta) - \widehat{S}_{l-1}(\theta)$ denotes an unbiased estimator of the increment $S_l(\theta)-S_{l-1}(\theta)$, implemented in the function `unbiased_score_increment`, which relies on four CPF chains on the discretization levels $l-1$ and $l$ generated by `coupled4_kernel`. The simple case $l=0$ requires unbiased estimation of $S_0(\theta)$; this is handled by the function `unbiased_discretized_score` which generates two CPF chains on level zero using the function `coupled2_kernel`, with coupled resampling scheme defined by the function `coupled2_resampling`. We choose the distribution to initialize CPF chains by specifying `initialization` as `dynamics` for the law of the time-discretized diffusion dynamics, or `particlefilter` for the law of a trajectory sampled from a particle filter. We set `algorithm` as `CPF` for the standard CPF algorithm; other variants of CPF include `CASPF` for CPF with ancestor sampling, and `CBSPF` for CPF with backward sampling. 
+
+
+```{r indepsum}
+# additional settings
+coupled2_resampling <- coupled2_maximal_independent_residuals # Algorithm 3 of the article
+initialization <- "dynamics" # choice to initialize CPF chains from time-discretized diffusion process
+algorithm <- "CPF" # standard CPF algorithm
+
+# compute independent sum estimator of score function
+score <- independent_sum(model, theta, observations, nparticles, resampling_threshold, coupled2_resampling, coupled4_resampling, initialization, algorithm, k = 5, m = 50, level_distribution)
+score
+```
+
+Lastly, note that it is important to choose the time-averaging tuning parameters `k` and `m` carefully to control the variance of these unbiased estimators. 
+
+# References
+
+
