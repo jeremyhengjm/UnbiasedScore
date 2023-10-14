@@ -1891,10 +1891,15 @@ score &lt;- independent_sum(model, theta, observations, nparticles, resampling_t
 ## 
 ## $elapsedtime
 ## elapsed 
-##  19.969</code></pre>
-<p>Lastly, note that it is important to choose the time-averaging tuning
+##   19.73</code></pre>
+<p>Note that it is important to choose the time-averaging tuning
 parameters <code>k</code> and <code>m</code> carefully to control the
-variance of these unbiased estimators.</p>
+variance of these unbiased estimators. In this specific example, we can
+compare our estimate with the exact score function computed using Kalman
+smoothing.</p>
+<pre class="r"><code># compute exact score function with Kalman smoothing
+model$compute_gradients(theta, observations) </code></pre>
+<pre><code>## [1] -1.6127602  0.8667747  2.0582012</code></pre>
 </div>
 <div id="references" class="section level1 unnumbered">
 <h1 class="unnumbered">References</h1>

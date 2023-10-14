@@ -159,7 +159,12 @@ score <- independent_sum(model, theta, observations, nparticles, resampling_thre
 score
 ```
 
-Lastly, note that it is important to choose the time-averaging tuning parameters `k` and `m` carefully to control the variance of these unbiased estimators. 
+Note that it is important to choose the time-averaging tuning parameters `k` and `m` carefully to control the variance of these unbiased estimators. In this specific example, we can compare our estimate with the exact score function computed using Kalman smoothing. 
+
+```{r compareexact}
+# compute exact score function with Kalman smoothing
+model$compute_gradients(theta, observations) 
+```
 
 # References
 
