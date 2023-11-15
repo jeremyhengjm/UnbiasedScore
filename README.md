@@ -31,7 +31,7 @@ or `particlefilter` for the law of a trajectory sampled from a particle filter;
 - `algorithm`: a character specifying the type of conditional particle filter, taken as `CPF` for the standard CPF, `CASPF` for CPF with ancestor sampling, and `CBSPF` for CPF with backward sampling;
 - `k`: an integer specifying a tuning parameter of our unbiased estimator which controls the iteration at which to start averaging, taken as zero by default;
 - `m`: an integer specifying a tuning parameter of our unbiased estimator which controls the iteration at which to stop averaging, taken as one by default;
-- `level_distribution`: a list containing `mass_function` and `tail_function` that specify the distribution of levels, e.g. by calling the function `compute_level_distribution`; 
+- `level_distribution`: a list containing `mass_function` and `tail_function` that specify the distribution of levels, e.g. by calling the function `compute_level_distribution`. 
 
 The `model` input is given by the output of the function `hmm_ornstein_uhlenbeck` for Example 1, the function `hmm_logistic_diffusion_full` for Example 2, 
 and the function `hmm_neuroscience_diffusion` for Example 3. Users who want to apply this package to other problems will have to write a function defining 
@@ -46,7 +46,7 @@ the hidden Markov model that returns the following objects:
 - `sigma`: an object defining the diffusion coefficient of the process; 
 - `rinit`: a function to sample from the initial distribution of the diffusion process; 
 - `rtransition`: a function to sample from the Markov transition defined by the time-discretized diffusion process;
-- `dtransition`: a function to evaluate the the Markov transition defined by the time-discretized diffusion process;
+- `dtransition`: a function to evaluate the Markov transition density defined by the time-discretized diffusion process;
 - `dmeasurement`: a function to evaluate the observation/measurement density; 
 - `functional`: a function whose conditional expectation one wants to estimate unbiasedly.
 
